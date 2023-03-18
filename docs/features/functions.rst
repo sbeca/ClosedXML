@@ -1140,6 +1140,10 @@ Future functions
      - _xlfn.ISOWEEKNUM
      - **Yes**
 
+   * - Lookup and Reference
+     - _xlfn.XLOOKUP
+     - **YES**
+
    * - :rspan:`13` Math and Trig
      - _xlfn.ACOT
      - **Yes**

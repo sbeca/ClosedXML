@@ -1,7 +1,9 @@
 // Keep this file CodeMaid organised and cleaned
 using ClosedXML.Excel;
+using ClosedXML.Excel.CalcEngine;
 using NUnit.Framework;
 using System;
+using System.Globalization;
 using System.Linq;
 
 namespace ClosedXML.Tests.Excel.CalcEngine
@@ -505,7 +507,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [Test]
-        public void Vlookup_OnlyOneValueSurreoundedByIgnoredTypes()
+        public void Vlookup_OnlyOneValueSurroundedByIgnoredTypes()
         {
             using var wb = new XLWorkbook();
             var worksheet = wb.AddWorksheet();
@@ -555,6 +557,229 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         public void Vlookup_CanSearchArrays()
         {
             Assert.AreEqual(2, XLWorkbook.EvaluateExpr("VLOOKUP(4, {1,2; 3,2; 5,3; 7,4}, 2)"));
+        }
+
+        [Test]
+        public void Xlookup()
+        {
+            // Range lookup with only exact match (the default)
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(3,Data!$B$2:$B$71,Data!$D$2:$D$71,,0)"));
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(B5,Data!$B$2:$B$71,Data!$D$2:$D$71,,0)"));
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(B5:B5,Data!$B$2:$B$71,Data!$D$2:$D$71,,0)"));
+
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(3,Data!$B$2:$B$71,Data!$D$2:$D$71)"));
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(B5,Data!$B$2:$B$71,Data!$D$2:$D$71)"));
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(B5:B5,Data!$B$2:$B$71,Data!$D$2:$D$71)"));
+
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(3,Data!$B$2:$B$71,Data!$D$2:$D$71,,)"));
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(B5,Data!$B$2:$B$71,Data!$D$2:$D$71,,)"));
+            Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(B5:B5,Data!$B$2:$B$71,Data!$D$2:$D$71,,)"));
+
+            Assert.AreEqual(63.68, ws.Evaluate("=XLOOKUP(DATE(2015,5,22),Data!C:C,Data!I:I,,0)"));
+            Assert.AreEqual(63.68, ws.Evaluate("=XLOOKUP(C11,Data!C:C,Data!I:I,,0)"));
+            Assert.AreEqual(63.68, ws.Evaluate("=XLOOKUP(C11:C11,Data!C:C,Data!I:I,,0)"));
+
+            Assert.AreEqual("Kivell", ws.Evaluate(@"=XLOOKUP(""Central"",Data!D:D,Data!E:E,,0)"));
+
+            // Case insensitive lookup
+            Assert.AreEqual("Kivell", ws.Evaluate(@"=XLOOKUP(""central"",Data!D:D,Data!E:E,,0)"));
+
+            // Range lookup with trying for exact match but returning the next smaller item if exact match not found
+            Assert.AreEqual(179.64, ws.Evaluate("=XLOOKUP(3,Data!$B$2:$B$71,Data!$I$2:$I$71,,-1)"));
+
+            Assert.AreEqual(174.65, ws.Evaluate("=XLOOKUP(14.5,Data!$B$2:$B$71,Data!$I$2:$I$71,,-1)"));
+
+            Assert.AreEqual(174.65, ws.Evaluate("=XLOOKUP(14.6,Data!$B$2:$B$71,Data!$I$2:$I$71,,-1)"));
+
+            Assert.AreEqual(139.72, ws.Evaluate("=XLOOKUP(50,Data!$B$2:$B$71,Data!$I$2:$I$71,,-1)"));
+
+            // Range lookup with trying for exact match but returning the next larger item if exact match not found
+            Assert.AreEqual(179.64, ws.Evaluate("=XLOOKUP(3,Data!$B$2:$B$71,Data!$I$2:$I$71,,1)"));
+
+            Assert.AreEqual(189.05, ws.Evaluate("=XLOOKUP(0,Data!$B$2:$B$71,Data!$I$2:$I$71,,1)"));
+
+            Assert.AreEqual(250, ws.Evaluate("=XLOOKUP(14.4,Data!$B$2:$B$71,Data!$I$2:$I$71,,1)"));
+
+            Assert.AreEqual(250, ws.Evaluate("=XLOOKUP(14.5,Data!$B$2:$B$71,Data!$I$2:$I$71,,1)"));
+        }
+
+        [Test]
+        public void Xlookup_ReturnsReference()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = (XLWorksheet)wb.AddWorksheet();
+            worksheet.Cell("A1").Value = 1;
+            worksheet.Cell("A2").Value = 2;
+            worksheet.Cell("A3").Value = 3;
+            worksheet.Cell("B1").Value = "Value1";
+            worksheet.Cell("B2").Value = "Value2";
+            worksheet.Cell("B3").Value = "Value3";
+
+            // When evaluated, XLOOKUP should return the real value
+            var actual = worksheet.Evaluate("XLOOKUP(2,A1:A3,B1:B3)");
+            Assert.AreEqual("Value2", actual);
+
+            // But when used in combination with other calculations, XLOOKUP needs to return a reference.
+            // This is important so that calcs like =SUM(XLOOKUP(1,A1:A3,B1:B3)) work when XLOOKUP returns text.
+            // IMPORTANT: This is different to how VLOOKUP and HLOOKUP work in Excel, where something like
+            // =SUM(VLOOKUP(1,A1:B3,2)) returns #VALUE! if VLOOKUP returns text.
+            var calcEngine = new XLCalcEngine(CultureInfo.CurrentCulture);
+            var ctx = new CalcContext(calcEngine, CultureInfo.CurrentCulture, wb, worksheet, null);
+            AnyValue value = calcEngine.EvaluateFormula("XLOOKUP(1,A1:A3,B1:B3)", ctx);
+            Assert.That(value.IsReference);
+            if (value.TryPickReference(out var reference, out _))
+            {
+                Assert.That(reference.IsSingleCell);
+                Assert.AreEqual("B1:B1", reference.Areas.Single().ToString());
+            }
+
+            // Test XLOOKUP directly inside SUM case for good measure
+            actual = worksheet.Evaluate("SUM(XLOOKUP(1,A1:A3,B1:B3))");
+            Assert.AreEqual(0, actual);
+        }
+
+        [Test]
+        public void Xlookup_ElementNotFound_ReturnsNotAvailableError()
+        {
+            // Value not present in the range for exact search
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=XLOOKUP("""",Data!$B$2:$B$71,Data!$D$2:$D$71)"));
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=XLOOKUP(50,Data!$B$2:$B$71,Data!$D$2:$D$71)"));
+
+            // Value in approximate search that is lower than first element
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=XLOOKUP(-1,Data!$B$2:$B$71,Data!$C$2:$C$71,,-1)"));
+        }
+
+        [Test]
+        public void Xlookup_ElementNotFound_ReturnsIfNotFoundValue()
+        {
+            // Value not present in the range for exact search
+            Assert.AreEqual("Not Found", ws.Evaluate(@"=XLOOKUP("""",Data!$B$2:$B$71,Data!$D$2:$D$71,""Not Found"")"));
+            Assert.AreEqual("Not Found", ws.Evaluate(@"=XLOOKUP(50,Data!$B$2:$B$71,Data!$D$2:$D$71,""Not Found"")"));
+
+            // Value in approximate search that is lower than first element
+            Assert.AreEqual("Not Found", ws.Evaluate(@"=XLOOKUP(-1,Data!$B$2:$B$71,Data!$C$2:$C$71,""Not Found"",-1)"));
+        }
+
+        [Test]
+        public void Xlookup_UnexpectedArguments()
+        {
+            // Lookup value can't be an error
+            Assert.AreEqual(XLError.DivisionByZero, ws.Evaluate("=XLOOKUP(#DIV/0!,B2:B71,C2:C71)"));
+
+            // Text value can't be over 255 chars
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate($"=XLOOKUP(\"{new string('A', 256)}\",B2:B71,C2:C71)"));
+
+            // Ranges are only allowed to be 1-dimensional
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(43,B2:C71,I2:I70)"));
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(43,B2:B71,H2:I70)"));
+
+            // The rules for what is allowed for the 2 range values is quite complicated
+            Assert.AreEqual(1, ws.Evaluate("=XLOOKUP(1,1,1)"));
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate("=XLOOKUP(1,2,1)"));
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(1,B2:B71,1)"));
+            // Assert.AreEqual("OrderDate", ws.Evaluate("=XLOOKUP(1,1,C2:C71)"));
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(1,B2:B71,TRUE)"));
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate("=XLOOKUP(1,TRUE,C2:C71)"));
+
+            // If range is a non-contiguous range, #N/A
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate("=XLOOKUP(1,(B2:B5,B6:B10),C2:C71)"));
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate("=XLOOKUP(1,B2:B71,(C2:C5,C6:C10))"));
+
+            // The lengths of both ranges must be exactly the same, otherwise #VALUE!
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(43,B2:B71,I2:I5)"));
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(43,B2:B71,I2:I70)"));
+            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate("=XLOOKUP(43,B2:B71,I2:I72)"));
+        }
+
+        [Test]
+        public void Xlookup_BlankLookupValue_BehavesAsBlank()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = wb.AddWorksheet();
+            worksheet.Cell("A1").InsertData(Enumerable.Range(-5, 10).Select(x => new object[] { x, $"Row with value {x}" }));
+            worksheet.Cell("B11").Value = "Row with blank value";
+
+            var actual = worksheet.Evaluate("XLOOKUP(IF(TRUE,,),A1:A11,B1:B11)");
+
+            Assert.AreEqual("Row with blank value", actual);
+        }
+
+        [Test]
+        public void Xlookup_ApproximateSearch_OmitsValuesWithDifferentType()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = wb.AddWorksheet();
+            worksheet.Cell("A1").Value = "0";
+            worksheet.Cell("A2").Value = "1";
+            worksheet.Cell("A3").Value = 1;
+            worksheet.Cell("A4").Value = "0";
+            worksheet.Cell("A5").Value = "text";
+            worksheet.Cell("A6").Value = Blank.Value;
+            worksheet.Cell("A7").Value = 2;
+            worksheet.Cell("B1").InsertData(Enumerable.Range(1, 7).Select(x => $"Row {x}"));
+
+            var actual = worksheet.Evaluate("XLOOKUP(1.9,A1:A7,B1:B7,,-1)");
+            Assert.AreEqual("Row 3", actual);
+        }
+
+        [Test]
+        public void Xlookup_OnlyCellsWithDifferentType_ReturnsNotAvailable()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = wb.AddWorksheet();
+            Assert.AreEqual(XLError.NoValueAvailable, worksheet.Evaluate("XLOOKUP(1,A1,A1,,-1)"));
+        }
+
+        [Test]
+        public void Xlookup_OnlyOneValueSurroundedByIgnoredTypes()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = wb.AddWorksheet();
+            worksheet.Cell("A3").Value = 5;
+
+            Assert.AreEqual(5, worksheet.Evaluate("XLOOKUP(6,A1:A5,A1:A5,,-1)"));
+        }
+
+        [Test]
+        public void Xlookup_ResultAtTheHighestCellWithTrailingDifferentTypeAtTheEnd()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = wb.AddWorksheet();
+            worksheet.Cell("A1").Value = 1;
+            worksheet.Cell("A2").Value = 2;
+            worksheet.Cell("A3").Value = 3;
+            worksheet.Cell("A4").Value = Blank.Value;
+
+            Assert.AreEqual(3, worksheet.Evaluate("XLOOKUP(3,A1:A4,A1:A4,,-1)"));
+        }
+
+        [Test]
+        public void Xlookup_ApproximateSearch_ReturnsResultFromMultipleEqualValuesBasedOnSearchMode()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = wb.AddWorksheet();
+            worksheet.Cell("A1").Value = 1;
+            worksheet.Cell("A2").Value = 3;
+            worksheet.Cell("A3").Value = 3;
+            worksheet.Cell("A4").Value = 3;
+            worksheet.Cell("A5").Value = 3;
+            worksheet.Cell("A6").Value = 3;
+            worksheet.Cell("A7").Value = 3;
+            worksheet.Cell("A8").Value = 9;
+            worksheet.Cell("B1").InsertData(Enumerable.Range(1, 8));
+
+            // If there is a section of values with same value, return the first value we find
+            Assert.AreEqual(2, worksheet.Evaluate("XLOOKUP(3,A1:A8,B1:B8,,-1)"));
+            Assert.AreEqual(2, worksheet.Evaluate("XLOOKUP(3,A1:A8,B1:B8,,-1,1)"));
+
+            // If there is a section of values with same value, and we're searching from the bottom, then return the last value in the list
+            Assert.AreEqual(7, worksheet.Evaluate("XLOOKUP(3,A1:A8,B1:B8,,-1,-1)"));
+        }
+
+        [Test]
+        public void Xlookup_CanSearchArrays()
+        {
+            Assert.AreEqual(2, XLWorkbook.EvaluateExpr("XLOOKUP(4, {1; 3; 5; 7}, {2; 2; 3; 4}, , -1)"));
         }
     }
 }

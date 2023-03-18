@@ -328,7 +328,7 @@ namespace ClosedXML.Excel.CalcEngine
             return EvaluateFormula(nameFormula, ctx);
         }
 
-        private AnyValue EvaluateFormula(string expression, CalcContext ctx)
+        internal AnyValue EvaluateFormula(string expression, CalcContext ctx)
         {
             var x = _cache[expression];
 

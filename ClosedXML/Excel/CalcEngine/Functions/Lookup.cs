@@ -32,6 +32,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             //ce.RegisterFunction("RTD", , Rtd); // Retrieves real-time data from a program that supports COM automation
             ce.RegisterFunction("TRANSPOSE", 1, 1, Adapt(Transpose), FunctionFlags.Range | FunctionFlags.ReturnsArray, AllowRange.All); // Returns the transpose of an array
             ce.RegisterFunction("VLOOKUP", 3, 4, AdaptLastOptional(Vlookup, true), FunctionFlags.Range, AllowRange.Only, 1); // Looks in the first column of an array and moves across the row to return the value of a cell
+            ce.RegisterFunction("XLOOKUP", 3, 6, Xlookup, FunctionFlags.Range, AllowRange.Only, 1, 2);
         }
 
         private static AnyValue Column(CalcContext ctx, Span<AnyValue> p)
@@ -464,7 +465,159 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             }
         }
 
-        private static int Bisection(Array range, ScalarValue lookupValue)
+        private static AnyValue Xlookup(CalcContext ctx, Span<AnyValue> p)
+        {
+            if (!p[0].TryPickScalar(out var lookupValue, out var lookupValueAsCollection))
+            {
+                if (!lookupValueAsCollection.TryPickT0(out _, out var lookupValueAsReference))
+                {
+                    if (!lookupValueAsReference.TryGetSingleCellValue(out lookupValue, ctx))
+                        return XLError.IncompatibleValue;
+                }
+                else
+                {
+                    return XLError.IncompatibleValue;
+                }
+            }
+
+            if (lookupValue.IsError)
+                return lookupValue.ToAnyValue();
+
+            var lookupRangeValue = p[1];
+            var returnRangeValue = p[2];
+
+            if (lookupValue.TryPickText(out var lookupText, out _) && lookupText.Length > 255)
+                return XLError.IncompatibleValue;
+
+            if (lookupRangeValue.TryPickScalar(out var lookupScalar, out var lookupRange))
+            {
+                if (ScalarValueComparer.SortIgnoreCase.Compare(lookupValue, lookupScalar) == 0)
+                    return returnRangeValue;
+                else
+                    return XLError.NoValueAvailable;
+            }
+
+            if (!lookupRange.TryPickT0(out var lookupArray, out var lookupReference))
+            {
+                // Range must be contiguous
+                if (lookupReference.Areas.Count > 1)
+                    return XLError.NoValueAvailable;
+                // Ranges are only allowed to be 1-dimensional
+                if (lookupReference.Areas.Count > 0 && lookupReference.Areas[0].RowSpan > 1 && lookupReference.Areas[0].ColumnSpan > 1)
+                    return XLError.IncompatibleValue;
+
+                lookupArray = new ReferenceArray(lookupReference.Areas.Single(), ctx);
+            }
+
+            if (returnRangeValue.TryPickScalar(out _, out var returnRange))
+                return XLError.IncompatibleValue;
+
+            IXLRange returnReferenceRange = null;
+            if (!returnRange.TryPickT0(out Array returnArray, out var returnReference))
+            {
+                // Range must be contiguous
+                if (returnReference.Areas.Count > 1)
+                    return XLError.NoValueAvailable;
+                // Ranges are only allowed to be 1-dimensional
+                if (returnReference.Areas.Count > 0 && returnReference.Areas[0].RowSpan > 1 && returnReference.Areas[0].ColumnSpan > 1)
+                    return XLError.IncompatibleValue;
+
+                var returnArraySingle = returnReference.Areas.Single();
+                returnArray = new ReferenceArray(returnArraySingle, ctx);
+                returnReferenceRange = (returnArraySingle.Worksheet ?? ctx.Worksheet).Range(returnArraySingle);
+            }
+
+            // The lengths of both ranges must be exactly the same
+            if ((lookupArray.Width * lookupArray.Height) != (returnArray.Width * returnArray.Height))
+                return XLError.IncompatibleValue;
+
+            var ifNotFoundValue = ScalarValue.Blank;
+            if (p.Length > 3 && !p[3].TryPickScalar(out ifNotFoundValue, out _))
+                return XLError.IncompatibleValue;
+
+            int matchModeInt = 0; // Default value
+            if (p.Length > 4)
+            {
+                if (!p[4].TryPickScalar(out var matchModeValue, out _))
+                    return XLError.IncompatibleValue;
+                if (!matchModeValue.ToNumber(ctx.Culture).TryPickT0(out var matchMode, out var error))
+                    return error;
+                matchModeInt = (int)matchMode;
+                if (matchModeInt < -1 || matchModeInt > 2)
+                    return XLError.IncompatibleValue;
+            }
+
+            int searchModeInt = 0; // Default value
+            if (p.Length > 5)
+            {
+                if (!p[5].TryPickScalar(out var searchModeValue, out _))
+                    return XLError.IncompatibleValue;
+                if (!searchModeValue.ToNumber(ctx.Culture).TryPickT0(out var searchMode, out var error))
+                    return error;
+                searchModeInt = (int)searchMode;
+                if (searchModeInt < -1 || searchModeInt > 2)
+                    return XLError.IncompatibleValue;
+            }
+
+            if (matchModeInt == 0) // 0 - Try to find exact match. If none found, return #N/A
+            {
+                if (lookupArray.Height > lookupArray.Width)
+                {
+                    for (var rowIndex = 0; rowIndex < lookupArray.Height; rowIndex++)
+                    {
+                        var currentValue = lookupArray[rowIndex, 0];
+
+                        // Because lookup value can't be an error, it doesn't matter that sort treats all errors as equal.
+                        var comparison = ScalarValueComparer.SortIgnoreCase.Compare(currentValue, lookupValue);
+                        if (comparison == 0)
+                            return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(rowIndex + 1, 1).AsRange().RangeAddress) : returnArray[rowIndex, 0].ToAnyValue());
+                    }
+                }
+                else
+                {
+                    for (var columnIndex = 0; columnIndex < lookupArray.Width; columnIndex++)
+                    {
+                        var currentValue = lookupArray[0, columnIndex];
+
+                        // Because lookup value can't be an error, it doesn't matter that sort treats all errors as equal.
+                        var comparison = ScalarValueComparer.SortIgnoreCase.Compare(currentValue, lookupValue);
+                        if (comparison == 0)
+                            return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(1, columnIndex + 1).AsRange().RangeAddress) : returnArray[0, columnIndex].ToAnyValue());
+                    }
+                }
+
+                return ifNotFoundValue.IsBlank ? XLError.NoValueAvailable : ifNotFoundValue.ToAnyValue();
+            }
+            else if (matchModeInt == -1) // -1 - Try to find exact match. If none found, return the next smaller item.
+            {
+                // Bisection in Excel and here differs, so we return different values for unsorted ranges, but same values for sorted ranges.
+                var foundRow = Bisection(lookupArray, lookupValue);
+                if (foundRow == -1)
+                    return ifNotFoundValue.IsBlank ? XLError.NoValueAvailable : ifNotFoundValue.ToAnyValue();
+
+                return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(foundRow + 1, 1).AsRange().RangeAddress) : returnArray[foundRow, 0].ToAnyValue());
+            }
+            else if (matchModeInt == 1) // 1 - Try to find exact match. If none found, return the next larger item.
+            {
+                // Bisection in Excel and here differs, so we return different values for unsorted ranges, but same values for sorted ranges.
+                var foundRow = Bisection(lookupArray, lookupValue, true);
+                if (foundRow == -1)
+                    return ifNotFoundValue.IsBlank ? XLError.NoValueAvailable : ifNotFoundValue.ToAnyValue();
+
+                return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(foundRow + 1, 1).AsRange().RangeAddress) : returnArray[foundRow, 0].ToAnyValue());
+            }
+            else if (matchModeInt == 2) // 2 - A wildcard match where *, ?, and ~ have special meaning: https://support.microsoft.com/en-us/office/using-wildcard-characters-in-searches-ef94362e-9999-4350-ad74-4d2371110adb
+            {
+                // TODO: Implement wildcard search
+                return XLError.IncompatibleValue;
+            }
+            else
+            {
+                return XLError.IncompatibleValue;
+            }
+        }
+
+        private static int Bisection(Array range, ScalarValue lookupValue, bool returnClosestMatchAboveLookupValue = false)
         {
             // Bisection is predicated on a fact that values of the same type are sorted.
             // If they are not, results are unpredictable.
@@ -486,7 +639,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             // Ensure invariants before main loop. If even lowest value in the range is greater than lookup value,
             // then there can't be any row that matches lookup value/lower.
             if (lowCompare > 0)
-                return -1;
+                return returnClosestMatchAboveLookupValue ? lowRow : -1;
 
             // Since we already know that there is at least one element of same type as lookup value,
             // high row will find something, though it might be same row as lowRow.
@@ -500,7 +653,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             // Ensure invariants before main loop. If the lookup value is greater/equal than
             // the greatest value of the range, it is the result.
             if (highCompare <= 0)
-                return highRow;
+                return returnClosestMatchAboveLookupValue ? -1 : highRow;
 
             // Now we have two borders with actual values and we know the lookup value is less than high and greater/equal to lower
             while (true)
@@ -515,7 +668,20 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                 // At this time, lowRow is less than lookup value and highRow
                 // is more than lookup value.
                 if (middleRow == lowRow)
-                    return lowRow;
+                {
+                    if (returnClosestMatchAboveLookupValue)
+                    {
+                        var lastMiddleValue = range[middleRow, 0];
+                        if (ScalarValueComparer.SortIgnoreCase.Compare(lastMiddleValue, lookupValue) == 0)
+                            return lowRow;
+                        else
+                            return highRow;
+                    }
+                    else
+                    {
+                        return lowRow;
+                    }
+                }
 
                 var middleValue = range[middleRow, 0];
                 var middleCompare = ScalarValueComparer.SortIgnoreCase.Compare(middleValue, lookupValue);

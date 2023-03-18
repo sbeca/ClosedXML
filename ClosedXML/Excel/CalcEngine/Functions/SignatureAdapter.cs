@@ -783,6 +783,42 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             }
         }
 
+        public static CalcEngineFunction AdaptXlookup(Func<CalcContext, ScalarValue, AnyValue, AnyValue, ScalarValue, int, int, AnyValue> f)
+        {
+            return (ctx, args) =>
+            {
+                var arg0Converted = ToScalarValue(args[0], ctx);
+                if (!arg0Converted.TryPickT0(out var arg0, out var err0))
+                    return err0;
+
+                var arg1 = args[1];
+
+                var arg2 = args[2];
+
+                ScalarValue arg3;
+                if (args.Length >= 4)
+                {
+                    var arg3Converted = ToScalarValue(args[3], ctx);
+                    if (!arg3Converted.TryPickT0(out arg3, out var err3))
+                        return err3;
+                }
+                else
+                {
+                    arg3 = XLError.NoValueAvailable;
+                }
+
+                var arg4Converted = args.Length >= 5 ? ToNumber(args[4], ctx) : 0;
+                if (!arg4Converted.TryPickT0(out var arg4, out var err4))
+                    return err4;
+
+                var arg5Converted = args.Length >= 6 ? ToNumber(args[5], ctx) : 1;
+                if (!arg5Converted.TryPickT0(out var arg5, out var err5))
+                    return err5;
+
+                return f(ctx, arg0, arg1, arg2, arg3, (int)arg4, (int)arg5);
+            };
+        }
+
         /// <summary>
         /// Adapt a function that accepts areas as arguments (e.g. SUMPRODUCT). The key benefit is
         /// that all <c>ReferenceArray</c> allocation is done once for a function. The method

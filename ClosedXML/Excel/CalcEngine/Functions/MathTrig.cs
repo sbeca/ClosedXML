@@ -956,17 +956,18 @@ namespace ClosedXML.Excel.CalcEngine
             var criteria = p[1].Evaluate();
 
             var rangeValues = rangeColumn.Cast<object>().ToList();
-            var sumRangeValues = sumRange.Cast<object>().ToList();
+            var sumRangeValues = sumRange?.Cast<object>().ToList();
+            var sumRangeValuesCount = sumRangeValues?.Count ?? 0;
 
             // compute total
             var ce = new CalcEngine(CultureInfo.CurrentCulture);
             var tally = new Tally();
-            for (var i = 0; i < Math.Max(rangeValues.Count, sumRangeValues.Count); i++)
+            for (var i = 0; i < Math.Max(rangeValues.Count, sumRangeValuesCount); i++)
             {
                 var targetValue = i < rangeValues.Count ? rangeValues[i] : string.Empty;
                 if (CalcEngineHelpers.ValueSatisfiesCriteria(targetValue, criteria, ce))
                 {
-                    var value = i < sumRangeValues.Count ? sumRangeValues[i] : 0d;
+                    var value = i < sumRangeValuesCount ? sumRangeValues![i] : 0d;
                     tally.AddValue(value);
                 }
             }

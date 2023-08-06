@@ -23,7 +23,7 @@ namespace ClosedXML.Excel
 
         public XLPivotTableSourceType SourceType { get; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var other = obj as XLPivotSourceReference;
             return Equals(other);

@@ -56,12 +56,14 @@ namespace ClosedXML.Utils
 
         public static string GetSalt(int length = 32)
         {
+#pragma warning disable SYSLIB0023 // Type or member is obsolete
             using (var random = new RNGCryptoServiceProvider())
             {
                 var salt = new byte[length];
                 random.GetNonZeroBytes(salt);
                 return Convert.ToBase64String(salt);
             }
+#pragma warning restore SYSLIB0023 // Type or member is obsolete
         }
 
         public static Boolean RequiresSalt(Algorithm algorithm)
@@ -120,6 +122,7 @@ namespace ClosedXML.Utils
             var bytes = saltBytes.Concat(passwordBytes).ToArray();
 
             byte[] hashedBytes;
+#pragma warning disable SYSLIB0021 // Type or member is obsolete
             using (var hash = new SHA512Managed())
             {
                 hashedBytes = hash.ComputeHash(bytes);
@@ -133,6 +136,7 @@ namespace ClosedXML.Utils
                     hashedBytes = hash.ComputeHash(bytes);
                 }
             }
+#pragma warning restore SYSLIB0021 // Type or member is obsolete
 
             return Convert.ToBase64String(hashedBytes);
         }

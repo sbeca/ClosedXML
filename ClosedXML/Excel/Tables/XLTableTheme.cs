@@ -75,19 +75,19 @@ namespace ClosedXML.Excel
             this.Name = name;
         }
 
-        private static IEnumerable<XLTableTheme>? allThemes;
+        private static IEnumerable<XLTableTheme?>? allThemes;
 
-        public static IEnumerable<XLTableTheme> GetAllThemes()
+        public static IEnumerable<XLTableTheme?> GetAllThemes()
         {
             return (allThemes ?? (allThemes = typeof(XLTableTheme).GetFields(BindingFlags.Static | BindingFlags.Public)
                 .Where(fi => fi.FieldType.Equals(typeof(XLTableTheme)))
-                .Select(fi => (XLTableTheme)fi.GetValue(null))
+                .Select(fi => (XLTableTheme)fi.GetValue(null)!)
                 .ToArray()));
         }
 
         public static XLTableTheme? FromName(string name)
         {
-            return GetAllThemes().FirstOrDefault(s => s.Name == name);
+            return GetAllThemes().FirstOrDefault(s => s is not null && s.Name == name);
         }
 
         #region Overrides

@@ -30,7 +30,7 @@ namespace ClosedXML.Excel
             {
                 ApplyCustomFilter(value, XLFilterOperator.Equal,
                                   v =>
-                                  v.ToString().Equals(value.ToString(), StringComparison.InvariantCultureIgnoreCase),
+                                  v.ToString()!.Equals(value.ToString(), StringComparison.InvariantCultureIgnoreCase),
                                   XLFilterType.Regular);
             }
             else
@@ -47,7 +47,7 @@ namespace ClosedXML.Excel
 
             _autoFilter.IsEnabled = true;
 
-            if (_autoFilter.Filters.TryGetValue(_column, out List<XLFilter> filterList))
+            if (_autoFilter.Filters.TryGetValue(_column, out List<XLFilter>? filterList))
                 filterList.Add(
                     new XLFilter
                     {
@@ -118,7 +118,7 @@ namespace ClosedXML.Excel
             {
                 return ApplyCustomFilter(value, XLFilterOperator.Equal,
                                          v =>
-                                         v.ToString().Equals(value.ToString(),
+                                         v.ToString()!.Equals(value.ToString(),
                                                              StringComparison.InvariantCultureIgnoreCase));
             }
 
@@ -132,7 +132,7 @@ namespace ClosedXML.Excel
             {
                 return ApplyCustomFilter(value, XLFilterOperator.NotEqual,
                                          v =>
-                                         !v.ToString().Equals(value.ToString(),
+                                         !v.ToString()!.Equals(value.ToString(),
                                                               StringComparison.InvariantCultureIgnoreCase));
             }
 
@@ -377,7 +377,7 @@ namespace ClosedXML.Excel
             }
             else
             {
-                if (_autoFilter.Filters.TryGetValue(_column, out List<XLFilter> filterList))
+                if (_autoFilter.Filters.TryGetValue(_column, out List<XLFilter>? filterList))
                     filterList.Add(new XLFilter
                     {
                         Value = value,

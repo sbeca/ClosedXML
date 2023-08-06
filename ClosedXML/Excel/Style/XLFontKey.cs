@@ -45,7 +45,7 @@ namespace ClosedXML.Excel
              && string.Equals(FontName, other.FontName, StringComparison.OrdinalIgnoreCase);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is XLFontKey)
                 return Equals((XLFontKey)obj);

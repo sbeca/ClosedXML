@@ -1159,7 +1159,7 @@ namespace ClosedXML.Excel
             Clear(XLClearOptions.Sparklines);
         }
 
-        private string GetFormat()
+        public string GetFormat()
         {
             var style = GetStyleForRead();
             if (String.IsNullOrWhiteSpace(style.NumberFormat.Format))

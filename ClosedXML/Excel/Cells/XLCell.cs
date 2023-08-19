@@ -516,6 +516,21 @@ namespace ClosedXML.Excel
                 : value.ToString(CultureInfo.CurrentCulture);
         }
 
+        public string GetFormat()
+        {
+            var style = GetStyleForRead();
+            if (String.IsNullOrWhiteSpace(style.NumberFormat.Format))
+            {
+                var formatCodes = XLPredefinedFormat.FormatCodes;
+                if (formatCodes.TryGetValue(style.NumberFormat.NumberFormatId, out string format))
+                    return format;
+                else
+                    return string.Empty;
+            }
+            else
+                return style.NumberFormat.Format;
+        }
+
         public void InvalidateFormula()
         {
             if (Formula is null)
@@ -1157,21 +1172,6 @@ namespace ClosedXML.Excel
         public void DeleteSparkline()
         {
             Clear(XLClearOptions.Sparklines);
-        }
-
-        private string GetFormat()
-        {
-            var style = GetStyleForRead();
-            if (String.IsNullOrWhiteSpace(style.NumberFormat.Format))
-            {
-                var formatCodes = XLPredefinedFormat.FormatCodes;
-                if (formatCodes.TryGetValue(style.NumberFormat.NumberFormatId, out string format))
-                    return format;
-                else
-                    return string.Empty;
-            }
-            else
-                return style.NumberFormat.Format;
         }
 
         public IXLCell CopyFrom(IXLRangeBase rangeObject)

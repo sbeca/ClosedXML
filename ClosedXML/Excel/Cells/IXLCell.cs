@@ -354,6 +354,8 @@ namespace ClosedXML.Excel
         /// </summary>
         String GetString();
 
+        String GetFormat();
+
         /// <summary>
         /// Gets the cell's value formatted depending on the cell's data type and style.
         /// </summary>

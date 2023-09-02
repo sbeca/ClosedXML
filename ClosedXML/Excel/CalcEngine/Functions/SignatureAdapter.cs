@@ -33,6 +33,18 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             };
         }
 
+        public static CalcEngineFunction Adapt(Func<string, AnyValue> f)
+        {
+            return (ctx, args) =>
+            {
+                var arg0Converted = ToText(args[0], ctx);
+                if (!arg0Converted.TryPickT0(out var arg0, out var err0))
+                    return err0;
+
+                return f(arg0);
+            };
+        }
+
         public static CalcEngineFunction Adapt(Func<double, AnyValue> f)
         {
             return (ctx, args) =>
@@ -58,6 +70,26 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                     return err1;
 
                 return f(arg0, arg1);
+            };
+        }
+
+        public static CalcEngineFunction Adapt(Func<double, double, double, AnyValue> f)
+        {
+            return (ctx, args) =>
+            {
+                var arg0Converted = ToNumber(args[0], ctx);
+                if (!arg0Converted.TryPickT0(out var arg0, out var err0))
+                    return err0;
+
+                var arg1Converted = ToNumber(args[1], ctx);
+                if (!arg1Converted.TryPickT0(out var arg1, out var err1))
+                    return err1;
+
+                var arg2Converted = ToNumber(args[2], ctx);
+                if (!arg2Converted.TryPickT0(out var arg2, out var err2))
+                    return err2;
+
+                return f(arg0, arg1, arg2);
             };
         }
 
@@ -136,6 +168,42 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                     return err0;
 
                 return f(ctx, arg0);
+            };
+        }
+
+        public static CalcEngineFunction Adapt(Func<CalcContext, ScalarValue, ScalarValue, AnyValue> f)
+        {
+            return (ctx, args) =>
+            {
+                var arg0Converted = ToScalarValue(args[0], ctx);
+                if (!arg0Converted.TryPickT0(out var arg0, out var err0))
+                    return err0;
+
+                var arg1Converted = ToScalarValue(args[1], ctx);
+                if (!arg1Converted.TryPickT0(out var arg1, out var err1))
+                    return err1;
+
+                return f(ctx, arg0, arg1);
+            };
+        }
+
+        public static CalcEngineFunction Adapt(Func<CalcContext, ScalarValue, ScalarValue, ScalarValue, AnyValue> f)
+        {
+            return (ctx, args) =>
+            {
+                var arg0Converted = ToScalarValue(args[0], ctx);
+                if (!arg0Converted.TryPickT0(out var arg0, out var err0))
+                    return err0;
+
+                var arg1Converted = ToScalarValue(args[1], ctx);
+                if (!arg1Converted.TryPickT0(out var arg1, out var err1))
+                    return err1;
+
+                var arg2Converted = ToScalarValue(args[2], ctx);
+                if (!arg2Converted.TryPickT0(out var arg2, out var err2))
+                    return err2;
+
+                return f(ctx, arg0, arg1, arg2);
             };
         }
 

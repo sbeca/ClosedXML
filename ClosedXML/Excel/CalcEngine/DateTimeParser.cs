@@ -1,5 +1,3 @@
-#nullable disable
-
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -46,7 +44,7 @@ namespace ClosedXML.Excel.CalcEngine
                 // isn't a pattern to just use. Example: for en-US, Excel type coercion can transform "aug 10, 2022 14:10",
                 // but every single format from CultureInfo.DateTimeFormat requires AM/PM. and two digits for minutes (thus
                 // the input couldn't match in any format => excel has likely it's own logic, independent of region setting).
-                var timePatterns = new[] { "h:m tt", "H:m", "h:m" };
+                var timePatterns = new[] { "h:m tt", "h:m:s tt", "H:m", "h:m" };
                 var longDatePatterns = shortDatePatterns
                     .SelectMany(datePattern => timePatterns.Select(timePattern => FormattableString.Invariant($"{datePattern} {timePattern}")));
 

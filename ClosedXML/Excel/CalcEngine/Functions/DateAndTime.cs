@@ -151,9 +151,27 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
         private static object Day(List<Expression> p)
         {
-            var date = (DateTime)p[0];
+            try
+            {
+                var date = (DateTime)p[0];
 
-            return date.Day;
+                // Check for special case that Excel handles in a weird way that we want to replicate
+                if (date.ToOADate() == 0d)
+                {
+                    return 0;
+                }
+
+                return date.Day;
+            }
+            catch (FormulaErrorException)
+            {
+                // Continue passing exception up the chain
+                throw;
+            }
+            catch
+            {
+                return XLError.IncompatibleValue;
+            }
         }
 
         private static object Days(List<Expression> p)
@@ -235,9 +253,27 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
         private static object Hour(List<Expression> p)
         {
-            var date = (DateTime)p[0];
+            try
+            {
+                var date = (DateTime)p[0];
 
-            return date.Hour;
+                // Check for special case that Excel handles in a weird way that we want to replicate
+                if (date.ToOADate() == 0d)
+                {
+                    return 0;
+                }
+
+                return date.Hour;
+            }
+            catch (FormulaErrorException)
+            {
+                // Continue passing exception up the chain
+                throw;
+            }
+            catch
+            {
+                return XLError.IncompatibleValue;
+            }
         }
 
         // http://stackoverflow.com/questions/11154673/get-the-correct-week-number-of-a-given-date
@@ -260,16 +296,52 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
         private static object Minute(List<Expression> p)
         {
-            var date = (DateTime)p[0];
+            try
+            {
+                var date = (DateTime)p[0];
 
-            return date.Minute;
+                // Check for special case that Excel handles in a weird way that we want to replicate
+                if (date.ToOADate() == 0d)
+                {
+                    return 0;
+                }
+
+                return date.Minute;
+            }
+            catch (FormulaErrorException)
+            {
+                // Continue passing exception up the chain
+                throw;
+            }
+            catch
+            {
+                return XLError.IncompatibleValue;
+            }
         }
 
         private static object Month(List<Expression> p)
         {
-            var date = (DateTime)p[0];
+            try
+            {
+                var date = (DateTime)p[0];
 
-            return date.Month;
+                // Check for special case that Excel handles in a weird way that we want to replicate
+                if (date.ToOADate() == 0d)
+                {
+                    return 1;
+                }
+
+                return date.Month;
+            }
+            catch (FormulaErrorException)
+            {
+                // Continue passing exception up the chain
+                throw;
+            }
+            catch
+            {
+                return XLError.IncompatibleValue;
+            }
         }
 
         private static object Networkdays(List<Expression> p)
@@ -294,9 +366,27 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
         private static object Second(List<Expression> p)
         {
-            var date = (DateTime)p[0];
+            try
+            {
+                var date = (DateTime)p[0];
 
-            return date.Second;
+                // Check for special case that Excel handles in a weird way that we want to replicate
+                if (date.ToOADate() == 0d)
+                {
+                    return 0;
+                }
+
+                return date.Second;
+            }
+            catch (FormulaErrorException)
+            {
+                // Continue passing exception up the chain
+                throw;
+            }
+            catch
+            {
+                return XLError.IncompatibleValue;
+            }
         }
 
         private static object Time(List<Expression> p)
@@ -380,9 +470,27 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
         private static object Year(List<Expression> p)
         {
-            var date = (DateTime)p[0];
+            try
+            {
+                var date = (DateTime)p[0];
 
-            return date.Year;
+                // Check for special case that Excel handles in a weird way that we want to replicate
+                if (date.ToOADate() == 0d)
+                {
+                    return 1900;
+                }
+
+                return date.Year;
+            }
+            catch (FormulaErrorException)
+            {
+                // Continue passing exception up the chain
+                throw;
+            }
+            catch
+            {
+                return XLError.IncompatibleValue;
+            }
         }
 
         private static object Yearfrac(List<Expression> p)

@@ -141,6 +141,14 @@ namespace ClosedXML.Excel.CalcEngine
             // evaluate
             var v = x.Evaluate();
 
+            // handle nulls
+            if (v is null)
+            {
+                // Excel converts Blank cells to a weird date value of: 1900/1/0 00:00:00
+                // C#'s OADate of 0 doesn't match this but we'll be able to use it for better conversions later
+                return DateTime.FromOADate(0);
+            }
+
             // handle dates
             if (v is DateTime dt)
             {
@@ -155,11 +163,23 @@ namespace ClosedXML.Excel.CalcEngine
             // handle numbers
             if (v.IsNumber())
             {
-                return DateTime.FromOADate((double)x);
+                return DateTimeExtensions.FromSerialDateTime((double)x);
+            }
+
+            // handle strings
+            CultureInfo _ci = Thread.CurrentThread.CurrentCulture;
+            if (v is string s)
+            {
+                // if string is just a single number, then we need to treat it as an OLE Automation Date value
+                if (int.TryParse(s, NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowDecimalPoint, _ci, out int i))
+                {
+                    return DateTimeExtensions.FromSerialDateTime(i);
+                }
+
+                return DateTime.Parse(s, _ci, DateTimeStyles.NoCurrentDateDefault);
             }
 
             // handle everything else
-            CultureInfo _ci = Thread.CurrentThread.CurrentCulture;
             return (DateTime)Convert.ChangeType(v, typeof(DateTime), _ci);
         }
 

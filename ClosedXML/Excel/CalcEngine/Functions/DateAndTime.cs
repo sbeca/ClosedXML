@@ -1,5 +1,3 @@
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,21 +10,21 @@ namespace ClosedXML.Excel.CalcEngine.Functions
     {
         public static void Register(FunctionRegistry ce)
         {
-            ce.RegisterFunction("DATE", 3, Date); // Returns the serial number of a particular date
-            ce.RegisterFunction("DATEDIF", 3, Datedif); // Calculates the number of days, months, or years between two dates
-            ce.RegisterFunction("DATEVALUE", 1, Datevalue); // Converts a date in the form of text to a serial number
-            ce.RegisterFunction("DAY", 1, Day); // Converts a serial number to a day of the month
-            ce.RegisterFunction("DAYS", 2, Days); // Returns the number of days between two dates.
+            ce.RegisterFunction("DATE", 3, 3, Adapt(Date), FunctionFlags.Scalar); // Returns the serial number of a particular date
+            ce.RegisterFunction("DATEDIF", 3, 3, Adapt(Datedif), FunctionFlags.Scalar); // Calculates the number of days, months, or years between two dates
+            ce.RegisterFunction("DATEVALUE", 1, 1, Adapt(Datevalue), FunctionFlags.Scalar); // Converts a date in the form of text to a serial number
+            ce.RegisterFunction("DAY", 1, 1, Adapt(Day), FunctionFlags.Scalar); // Converts a serial number to a day of the month
+            ce.RegisterFunction("DAYS", 2, 2, Adapt(Days), FunctionFlags.Scalar); // Returns the number of days between two dates.
             ce.RegisterFunction("DAYS360", 2, 3, Days360); // Calculates the number of days between two dates based on a 360-day year
             ce.RegisterFunction("EDATE", 2, Edate); // Returns the serial number of the date that is the indicated number of months before or after the start date
             ce.RegisterFunction("EOMONTH", 2, Eomonth); // Returns the serial number of the last day of the month before or after a specified number of months
-            ce.RegisterFunction("HOUR", 1, Hour); // Converts a serial number to an hour
+            ce.RegisterFunction("HOUR", 1, 1, Adapt(Hour), FunctionFlags.Scalar); // Converts a serial number to an hour
             ce.RegisterFunction("ISOWEEKNUM", 1, IsoWeekNum); // Returns number of the ISO week number of the year for a given date.
-            ce.RegisterFunction("MINUTE", 1, Minute); // Converts a serial number to a minute
-            ce.RegisterFunction("MONTH", 1, Month); // Converts a serial number to a month
+            ce.RegisterFunction("MINUTE", 1, 1, Adapt(Minute), FunctionFlags.Scalar); // Converts a serial number to a minute
+            ce.RegisterFunction("MONTH", 1, 1, Adapt(Month), FunctionFlags.Scalar); // Converts a serial number to a month
             ce.RegisterFunction("NETWORKDAYS", 2, 3, Networkdays, AllowRange.Only, 2); // Returns the number of whole workdays between two dates
             ce.RegisterFunction("NOW", 0, Now); // Returns the serial number of the current date and time
-            ce.RegisterFunction("SECOND", 1, Second); // Converts a serial number to a second
+            ce.RegisterFunction("SECOND", 1, 1, Adapt(Second), FunctionFlags.Scalar); // Converts a serial number to a second
             ce.RegisterFunction("TIME", 3, Time); // Returns the serial number of a particular time
             ce.RegisterFunction("TIMEVALUE", 1, Timevalue); // Converts a time in the form of text to a serial number
             ce.RegisterFunction("TODAY", 0, Today); // Returns the serial number of today's date
@@ -89,90 +87,93 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             return businessDays;
         }
 
-        private static object Date(List<Expression> p)
+        private static AnyValue Date(double year, double month, double day)
         {
-            var year = (int)p[0];
-            var month = (int)p[1];
-            var day = (int)p[2];
+            var yearInt = (int)year;
+            var monthInt = (int)month;
+            var dayInt = (int)day;
 
             // Excel allows months and days outside the normal range, and adjusts the date accordingly
-            if (month > 12 || month < 1)
+            if (monthInt > 12 || monthInt < 1)
             {
-                year += (int)Math.Floor((double)(month - 1d) / 12.0);
-                month -= (int)Math.Floor((double)(month - 1d) / 12.0) * 12;
+                yearInt += (int)Math.Floor((double)(monthInt - 1d) / 12.0);
+                monthInt -= (int)Math.Floor((double)(monthInt - 1d) / 12.0) * 12;
             }
 
             int daysAdjustment = 0;
-            if (day > DateTime.DaysInMonth(year, month))
+            if (dayInt > DateTime.DaysInMonth(yearInt, monthInt))
             {
-                daysAdjustment = day - DateTime.DaysInMonth(year, month);
-                day = DateTime.DaysInMonth(year, month);
+                daysAdjustment = dayInt - DateTime.DaysInMonth(yearInt, monthInt);
+                dayInt = DateTime.DaysInMonth(yearInt, monthInt);
             }
-            else if (day < 1)
+            else if (dayInt < 1)
             {
-                daysAdjustment = day - 1;
-                day = 1;
+                daysAdjustment = dayInt - 1;
+                dayInt = 1;
             }
 
-            return (int)Math.Floor(new DateTime(year, month, day).AddDays(daysAdjustment).ToOADate());
+            return (int)Math.Floor(new DateTime(yearInt, monthInt, dayInt).AddDays(daysAdjustment).ToOADate());
         }
 
-        private static object Datedif(List<Expression> p)
+        private static AnyValue Datedif(CalcContext ctx, ScalarValue startDate, ScalarValue endDate, ScalarValue unit)
         {
-            DateTime startDate = p[0];
-            DateTime endDate = p[1];
-            string unit = p[2];
+            if (!startDate.ToNumber(ctx.Culture).TryPickT0(out var startDateNumber, out var startDateError))
+                return startDateError;
+            if (!endDate.ToNumber(ctx.Culture).TryPickT0(out var endDateNumber, out var endDateError))
+                return endDateError;
+            if (!unit.ToText(ctx.Culture).TryPickT0(out var unitValue, out var unitError))
+                return unitError;
 
-            if (startDate > endDate)
+            DateTime startDateValue = startDateNumber.ToSerialDateTime();
+            DateTime endDateValue = endDateNumber.ToSerialDateTime();
+
+            if (startDateValue > endDateValue)
                 return XLError.NumberInvalid;
 
-            return (unit.ToUpper()) switch
+            return (unitValue!.ToUpper()) switch
             {
-                "Y" => endDate.Year - startDate.Year - (new DateTime(startDate.Year, endDate.Month, endDate.Day) < startDate ? 1 : 0),
-                "M" => Math.Truncate((endDate.Year - startDate.Year) * 12d + endDate.Month - startDate.Month - (endDate.Day < startDate.Day ? 1 : 0)),
-                "D" => Math.Truncate(endDate.Date.Subtract(startDate.Date).TotalDays),
+                "Y" => endDateValue.Year - startDateValue.Year - (new DateTime(startDateValue.Year, endDateValue.Month, endDateValue.Day) < startDateValue ? 1 : 0),
+                "M" => Math.Truncate((endDateValue.Year - startDateValue.Year) * 12d + endDateValue.Month - startDateValue.Month - (endDateValue.Day < startDateValue.Day ? 1 : 0)),
+                "D" => Math.Truncate(endDateValue.Date.Subtract(startDateValue.Date).TotalDays),
 
                 // Microsoft discourages the use of the MD parameter
                 // https://support.microsoft.com/en-us/office/datedif-function-25dba1a4-2812-480b-84dd-8b32a451b35c
-                "MD" => (endDate.Day - startDate.Day + DateTime.DaysInMonth(startDate.Year, startDate.Month)) % DateTime.DaysInMonth(startDate.Year, startDate.Month),
+                "MD" => (endDateValue.Day - startDateValue.Day + DateTime.DaysInMonth(startDateValue.Year, startDateValue.Month)) % DateTime.DaysInMonth(startDateValue.Year, startDateValue.Month),
 
-                "YM" => (endDate.Month - startDate.Month + 12) % 12 - (endDate.Day < startDate.Day ? 1 : 0),
-                "YD" => Math.Truncate(new DateTime(startDate.Year + (new DateTime(startDate.Year, endDate.Month, endDate.Day) < startDate ? 1 : 0), endDate.Month, endDate.Day).Subtract(startDate).TotalDays),
+                "YM" => (endDateValue.Month - startDateValue.Month + 12) % 12 - (endDateValue.Day < startDateValue.Day ? 1 : 0),
+                "YD" => Math.Truncate(new DateTime(startDateValue.Year + (new DateTime(startDateValue.Year, endDateValue.Month, endDateValue.Day) < startDateValue ? 1 : 0), endDateValue.Month, endDateValue.Day).Subtract(startDateValue).TotalDays),
                 _ => XLError.NumberInvalid,
             };
         }
 
-        private static object Datevalue(List<Expression> p)
+        private static AnyValue Datevalue(string date)
         {
-            var date = (string)p[0];
-
             return (int)Math.Floor(DateTime.Parse(date).ToOADate());
         }
 
-        private static object Day(List<Expression> p)
+        private static AnyValue Day(double serialDateTime)
         {
-            var date = (DateTime)p[0];
+            serialDateTime = Math.Truncate(serialDateTime);
+            if (serialDateTime < 0)
+                return XLError.NumberInvalid;
 
-            return date.Day;
+            // Serial date time values from [0, 1) are from 1899-12-31,
+            // but Excel represents them as 1900-01-00.
+            if (serialDateTime < 1)
+                return 0;
+
+            return serialDateTime.ToSerialDateTime().Day;
         }
 
-        private static object Days(List<Expression> p)
+        private static AnyValue Days(CalcContext ctx, ScalarValue end_date, ScalarValue start_date)
         {
-            int end_date;
-            var endDateValue = p[0].Evaluate();
-            if (endDateValue is string)
-                end_date = (int)Datevalue(new List<Expression>() { p[0] });
-            else
-                end_date = (int)p[0];
+            if (!end_date.ToNumber(ctx.Culture).TryPickT0(out var endDateValue, out var endDateError))
+                return endDateError;
 
-            int start_date;
-            var startDateValue = p[1].Evaluate();
-            if (startDateValue is string)
-                start_date = (int)Datevalue(new List<Expression>() { p[1] });
-            else
-                start_date = (int)p[1];
+            if (!start_date.ToNumber(ctx.Culture).TryPickT0(out var startDateValue, out var startDateError))
+                return startDateError;
 
-            return end_date - start_date;
+            return (int)endDateValue - (int)startDateValue;
         }
 
         private static object Days360(List<Expression> p)
@@ -233,11 +234,12 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             return daysInYears.Average();
         }
 
-        private static object Hour(List<Expression> p)
+        private static AnyValue Hour(double serialDateTime)
         {
-            var date = (DateTime)p[0];
+            if (serialDateTime < 0)
+                return XLError.NumberInvalid;
 
-            return date.Hour;
+            return serialDateTime.ToSerialDateTime().Hour;
         }
 
         // http://stackoverflow.com/questions/11154673/get-the-correct-week-number-of-a-given-date
@@ -258,18 +260,26 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             return CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(date, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
         }
 
-        private static object Minute(List<Expression> p)
+        private static AnyValue Minute(double serialDateTime)
         {
-            var date = (DateTime)p[0];
+            if (serialDateTime < 0)
+                return XLError.NumberInvalid;
 
-            return date.Minute;
+            return serialDateTime.ToSerialDateTime().Minute;
         }
 
-        private static object Month(List<Expression> p)
+        private static AnyValue Month(double serialDateTime)
         {
-            var date = (DateTime)p[0];
+            serialDateTime = Math.Truncate(serialDateTime);
+            if (serialDateTime < 0)
+                return XLError.NumberInvalid;
 
-            return date.Month;
+            // Serial date time values from [0, 1) are from 1899-12-31,
+            // but Excel represents them as 1900-01-00.
+            if (serialDateTime < 1)
+                return 1;
+
+            return serialDateTime.ToSerialDateTime().Month;
         }
 
         private static object Networkdays(List<Expression> p)
@@ -292,11 +302,12 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             return DateTime.Now;
         }
 
-        private static object Second(List<Expression> p)
+        private static AnyValue Second(double serialDateTime)
         {
-            var date = (DateTime)p[0];
+            if (serialDateTime < 0)
+                return XLError.NumberInvalid;
 
-            return date.Second;
+            return serialDateTime.ToSerialDateTime().Second;
         }
 
         private static object Time(List<Expression> p)

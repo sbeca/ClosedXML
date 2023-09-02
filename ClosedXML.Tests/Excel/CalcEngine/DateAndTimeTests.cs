@@ -80,14 +80,47 @@ namespace ClosedXML.Tests.Excel.DataValidations
         [Test]
         public void Datevalue()
         {
-            var actual = XLWorkbook.EvaluateExpr("DateValue(\"8/22/2008\")");
-            Assert.AreEqual(39682, actual);
+            var actual = XLWorkbook.EvaluateExpr("DateValue(\"8/22/2011\")");
+            Assert.AreEqual(40777, actual);
+
+            actual = XLWorkbook.EvaluateExpr("DateValue(\"22-MAY-2011\")");
+            Assert.AreEqual(40685, actual);
+
+            actual = XLWorkbook.EvaluateExpr("DateValue(\"2011/02/23\")");
+            Assert.AreEqual(40597, actual);
+
+            // Should parse as current year
+            actual = XLWorkbook.EvaluateExpr("DateValue(\"5-JUL\")");
+            Assert.AreEqual(new DateTime(DateTime.Now.Year, 7, 5).ToOADate(), actual);
+        }
+
+        [TestCase("\"8/22/2008\"", 22)]
+        [TestCase("\"1/2/2006 10:45 AM\"", 2)]
+        [TestCase("0", 0)]
+        [TestCase("0.5", 0)]
+        [TestCase("1", 1)]
+        [TestCase("366", 31)]
+        [TestCase("367", 1)]
+        [TestCase("\"367\"", 1)] // Test string in addition to number in TestCase before
+        [TestCase("-1", XLError.NumberInvalid)]
+        [TestCase("\"test\"", XLError.IncompatibleValue)]
+        [TestCase("IF(TRUE,)", 0)] // Blank
+        [TestCase("TRUE", 1)]
+        [TestCase("FALSE", 0)]
+        [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
+        public void Day(string value, object expected)
+        {
+            var actual = XLWorkbook.EvaluateExpr($"DAY({value})");
+            Assert.AreEqual(XLCellValue.FromObject(expected), actual);
         }
 
         [Test]
-        public void Day()
+        [Ignore("Excel accepts this but ClosedXML does not yet")]
+        public void Day_CurrentYear()
         {
-            var actual = XLWorkbook.EvaluateExpr("Day(\"8/22/2008\")");
+            // Test providing just month and day, which should fill the year as "current year"
+            var actual = XLWorkbook.EvaluateExpr("DAY(\"8/22\")");
             Assert.AreEqual(22, actual);
         }
 
@@ -104,10 +137,12 @@ namespace ClosedXML.Tests.Excel.DataValidations
         [Test]
         public void DayWithDifferentCulture()
         {
-            CultureInfo ci = new CultureInfo(CultureInfo.InvariantCulture.LCID);
-            ci.DateTimeFormat.ShortDatePattern = "dd/MM/yyyy";
-            Thread.CurrentThread.CurrentCulture = ci;
-            var actual = XLWorkbook.EvaluateExpr("Day(\"1/6/2008\")");
+            // Choose a different culture that uses the dd/MM/yyyy date pattern
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-GB");
+
+            using var wb = new XLWorkbook();
+            var ws = wb.AddWorksheet();
+            var actual = ws.Evaluate("Day(\"1/6/2008\")");
             Assert.AreEqual(1, actual);
         }
 
@@ -188,24 +223,77 @@ namespace ClosedXML.Tests.Excel.DataValidations
             Assert.AreEqual(new DateTime(2008, 4, 30).ToSerialDateTime(), actual);
         }
 
-        [Test]
-        public void Hour()
+        [TestCase("\"8/22/2008\"", 0)]
+        [TestCase("\"1/2/2006 10:45 AM\"", 10)]
+        [TestCase("\"8/22/2008 3:30:45 PM\"", 15)]
+        [TestCase("0", 0)]
+        [TestCase("0.5", 12)]
+        [TestCase("1", 0)]
+        [TestCase("366", 0)]
+        [TestCase("367", 0)]
+        [TestCase("\"367\"", 0)] // Test string in addition to number in TestCase before
+        [TestCase("-1", XLError.NumberInvalid)]
+        [TestCase("\"test\"", XLError.IncompatibleValue)]
+        [TestCase("IF(TRUE,)", 0)] // Blank
+        [TestCase("TRUE", 0)]
+        [TestCase("FALSE", 0)]
+        [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
+        public void Hour(string value, object expected)
         {
-            var actual = XLWorkbook.EvaluateExpr("Hour(\"8/22/2008 3:30:45 PM\")");
-            Assert.AreEqual(15, actual);
+            var actual = XLWorkbook.EvaluateExpr($"HOUR({value})");
+            Assert.AreEqual(XLCellValue.FromObject(expected), actual);
+        }
+
+        [TestCase("\"8/22/2008\"", 0)]
+        [TestCase("\"1/2/2006 10:45 AM\"", 45)]
+        [TestCase("\"8/22/2008 3:3:45 PM\"", 3)]
+        [TestCase("0", 0)]
+        [TestCase("0.5", 0)]
+        [TestCase("1", 0)]
+        [TestCase("366", 0)]
+        [TestCase("367", 0)]
+        [TestCase("\"367\"", 0)] // Test string in addition to number in TestCase before
+        [TestCase("-1", XLError.NumberInvalid)]
+        [TestCase("\"test\"", XLError.IncompatibleValue)]
+        [TestCase("IF(TRUE,)", 0)] // Blank
+        [TestCase("TRUE", 0)]
+        [TestCase("FALSE", 0)]
+        [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
+        public void Minute(string value, object expected)
+        {
+            var actual = XLWorkbook.EvaluateExpr($"MINUTE({value})");
+            Assert.AreEqual(XLCellValue.FromObject(expected), actual);
+        }
+
+        [TestCase("\"8/22/2008\"", 8)]
+        [TestCase("\"1/2/2006 10:45 AM\"", 1)]
+        [TestCase("0", 1)]
+        [TestCase("0.5", 1)]
+        [TestCase("1", 1)]
+        [TestCase("366", 12)]
+        [TestCase("367", 1)]
+        [TestCase("\"367\"", 1)] // Test string in addition to number in TestCase before
+        [TestCase("-1", XLError.NumberInvalid)]
+        [TestCase("\"test\"", XLError.IncompatibleValue)]
+        [TestCase("IF(TRUE,)", 1)] // Blank
+        [TestCase("TRUE", 1)]
+        [TestCase("FALSE", 1)]
+        [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
+        public void Month(string value, object expected)
+        {
+            var actual = XLWorkbook.EvaluateExpr($"MONTH({value})");
+            Assert.AreEqual(XLCellValue.FromObject(expected), actual);
         }
 
         [Test]
-        public void Minute()
+        [Ignore("Excel accepts this but ClosedXML does not yet")]
+        public void Month_CurrentYear()
         {
-            var actual = XLWorkbook.EvaluateExpr("Minute(\"8/22/2008 3:30:45 AM\")");
-            Assert.AreEqual(30, actual);
-        }
-
-        [Test]
-        public void Month()
-        {
-            var actual = XLWorkbook.EvaluateExpr("Month(\"8/22/2008\")");
+            // Test providing just month and day, which should fill the year as "current year"
+            var actual = XLWorkbook.EvaluateExpr("MONTH(\"8/22\")");
             Assert.AreEqual(8, actual);
         }
 
@@ -258,11 +346,27 @@ namespace ClosedXML.Tests.Excel.DataValidations
             Assert.AreEqual(107, actual);
         }
 
-        [Test]
-        public void Second()
+        [TestCase("\"8/22/2008\"", 0)]
+        [TestCase("\"1/2/2006 10:45 AM\"", 0)]
+        [TestCase("\"8/22/2008 3:30:4 PM\"", 4)]
+        [TestCase("\"8/22/2008 3:30:23 PM\"", 23)]
+        [TestCase("0", 0)]
+        [TestCase("0.5", 0)]
+        [TestCase("1", 0)]
+        [TestCase("366", 0)]
+        [TestCase("367", 0)]
+        [TestCase("\"367\"", 0)] // Test string in addition to number in TestCase before
+        [TestCase("-1", XLError.NumberInvalid)]
+        [TestCase("\"test\"", XLError.IncompatibleValue)]
+        [TestCase("IF(TRUE,)", 0)] // Blank
+        [TestCase("TRUE", 0)]
+        [TestCase("FALSE", 0)]
+        [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
+        public void Second(string value, object expected)
         {
-            var actual = XLWorkbook.EvaluateExpr("Second(\"8/22/2008 3:30:45 AM\")");
-            Assert.AreEqual(45, actual);
+            var actual = XLWorkbook.EvaluateExpr($"SECOND({value})");
+            Assert.AreEqual(XLCellValue.FromObject(expected), actual);
         }
 
         [Test]
@@ -487,12 +591,14 @@ namespace ClosedXML.Tests.Excel.DataValidations
         [TestCase("1", 1900)]
         [TestCase("366", 1900)]
         [TestCase("367", 1901)]
+        [TestCase("\"367\"", 1901)] // Test string in addition to number in TestCase before
         [TestCase("-1", XLError.NumberInvalid)]
         [TestCase("\"test\"", XLError.IncompatibleValue)]
         [TestCase("IF(TRUE,)", 1900)] // Blank
         [TestCase("TRUE", 1900)]
         [TestCase("FALSE", 1900)]
         [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
         public void Year(string value, object expected)
         {
             var actual = XLWorkbook.EvaluateExpr($"YEAR({value})");
@@ -508,6 +614,15 @@ namespace ClosedXML.Tests.Excel.DataValidations
             ws.Cell("A2").FormulaA1 = @"=YEAR(A1)";
             var valueA2 = ws.Cell("A2").Value;
             Assert.AreEqual(1900, valueA2);
+        }
+
+        [Test]
+        [Ignore("Excel accepts this but ClosedXML does not yet")]
+        public void Year_CurrentYear()
+        {
+            // Test providing just month and day, which should fill the year as "current year"
+            var actual = XLWorkbook.EvaluateExpr("YEAR(\"8/22\")");
+            Assert.AreEqual(DateTime.Now.Year, actual);
         }
 
         [Test]

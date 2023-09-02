@@ -165,11 +165,23 @@ namespace ClosedXML.Excel.CalcEngine
             // handle numbers
             if (v.IsNumber())
             {
-                return DateTime.FromOADate((double)x);
+                return ((double)v).ToSerialDateTime();
+            }
+
+            // handle strings
+            CultureInfo _ci = Thread.CurrentThread.CurrentCulture;
+            if (v is string s)
+            {
+                // if string is just a single number, then we need to treat it as an OLE Automation Date value
+                if (int.TryParse(s, NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowDecimalPoint, _ci, out int i))
+                {
+                    return ((double)i).ToSerialDateTime();
+                }
+
+                return DateTime.Parse(s, _ci, DateTimeStyles.NoCurrentDateDefault);
             }
 
             // handle everything else
-            CultureInfo _ci = Thread.CurrentThread.CurrentCulture;
             return (DateTime)Convert.ChangeType(v, typeof(DateTime), _ci);
         }
 

@@ -81,15 +81,53 @@ namespace ClosedXML.Tests.Excel.DataValidations
         [Test]
         public void Datevalue()
         {
-            var actual = XLWorkbook.EvaluateExpr("DateValue(\"8/22/2008\")");
-            Assert.AreEqual(39682, actual);
+            var actual = XLWorkbook.EvaluateExpr("DateValue(\"8/22/2011\")");
+            Assert.AreEqual(40777, actual);
+
+            actual = XLWorkbook.EvaluateExpr("DateValue(\"22-MAY-2011\")");
+            Assert.AreEqual(40685, actual);
+
+            actual = XLWorkbook.EvaluateExpr("DateValue(\"2011/02/23\")");
+            Assert.AreEqual(40597, actual);
+
+            // Should parse as current year
+            actual = XLWorkbook.EvaluateExpr("DateValue(\"5-JUL\")");
+            Assert.AreEqual(new DateTime(DateTime.Now.Year, 7, 5).ToOADate(), actual);
         }
 
         [Test]
         public void Day()
         {
+            // Test providing full date string
             var actual = XLWorkbook.EvaluateExpr("Day(\"8/22/2008\")");
             Assert.AreEqual(22, actual);
+
+            // Test providing just month and day
+            actual = XLWorkbook.EvaluateExpr("Day(\"8/22\")");
+            Assert.AreEqual(22, actual);
+
+            // Test passing in invidual numbers, which should be treated as "days after 1900/1/0"
+            actual = XLWorkbook.EvaluateExpr("Day(\"8\")");
+            Assert.AreEqual(8, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Day(8)");
+            Assert.AreEqual(8, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Day(\"888\")");
+            Assert.AreEqual(6, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Day(888)");
+            Assert.AreEqual(6, actual);
+
+            // Test empty string, which is invalid
+            actual = XLWorkbook.EvaluateExpr("Day(\"\")");
+            Assert.AreEqual(XLError.IncompatibleValue, actual);
+
+            // Test referencing a blank cell. Excel converts blank cells to a weird date value of: 1900/1/0 00:00:00
+            using var wb = new XLWorkbook();
+            IXLWorksheet ws = wb.AddWorksheet("Sheet1");
+            actual = ws.Evaluate("Day(A1)");
+            Assert.AreEqual(0, actual);
         }
 
         [Test]
@@ -206,8 +244,36 @@ namespace ClosedXML.Tests.Excel.DataValidations
         [Test]
         public void Month()
         {
+            // Test providing full date string
             var actual = XLWorkbook.EvaluateExpr("Month(\"8/22/2008\")");
             Assert.AreEqual(8, actual);
+
+            // Test providing just month and day
+            actual = XLWorkbook.EvaluateExpr("Month(\"8/22\")");
+            Assert.AreEqual(8, actual);
+
+            // Test passing in invidual numbers, which should be treated as "days after 1900/1/0"
+            actual = XLWorkbook.EvaluateExpr("Month(\"8\")");
+            Assert.AreEqual(1, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Month(8)");
+            Assert.AreEqual(1, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Month(\"888\")");
+            Assert.AreEqual(6, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Month(888)");
+            Assert.AreEqual(6, actual);
+
+            // Test empty string, which is invalid
+            actual = XLWorkbook.EvaluateExpr("Month(\"\")");
+            Assert.AreEqual(XLError.IncompatibleValue, actual);
+
+            // Test referencing a blank cell. Excel converts blank cells to a weird date value of: 1900/1/0 00:00:00
+            using var wb = new XLWorkbook();
+            IXLWorksheet ws = wb.AddWorksheet("Sheet1");
+            actual = ws.Evaluate("Month(A1)");
+            Assert.AreEqual(1, actual);
         }
 
         [Test]
@@ -484,8 +550,36 @@ namespace ClosedXML.Tests.Excel.DataValidations
         [Test]
         public void Year()
         {
+            // Test providing full date string
             var actual = XLWorkbook.EvaluateExpr("Year(\"8/22/2008\")");
             Assert.AreEqual(2008, actual);
+
+            // Test providing just month and day
+            actual = XLWorkbook.EvaluateExpr("Year(\"8/22\")");
+            Assert.AreEqual(DateTime.Now.Year, actual);
+
+            // Test passing in invidual numbers, which should be treated as "days after 1900/1/0"
+            actual = XLWorkbook.EvaluateExpr("Year(\"8\")");
+            Assert.AreEqual(1900, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Year(8)");
+            Assert.AreEqual(1900, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Year(\"888\")");
+            Assert.AreEqual(1902, actual);
+
+            actual = XLWorkbook.EvaluateExpr("Year(888)");
+            Assert.AreEqual(1902, actual);
+
+            // Test empty string, which is invalid
+            actual = XLWorkbook.EvaluateExpr("Year(\"\")");
+            Assert.AreEqual(XLError.IncompatibleValue, actual);
+
+            // Test referencing a blank cell. Excel converts blank cells to a weird date value of: 1900/1/0 00:00:00
+            using var wb = new XLWorkbook();
+            IXLWorksheet ws = wb.AddWorksheet("Sheet1");
+            actual = ws.Evaluate("Year(A1)");
+            Assert.AreEqual(1900, actual);
         }
 
         [Test]

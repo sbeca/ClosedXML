@@ -124,11 +124,41 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                 rangeArray = new ReferenceArray(rangeReference.Areas.Single(), ctx);
             }
 
-            p[1].TryPickScalar(out var rowNumber, out _);
+            if (!p[1].TryPickScalar(out var rowNumber, out var rowNumberAsCollection))
+            {
+                if (rowNumberAsCollection.TryPickT0(out var rowNumberAsArray, out var rowNumberAsReference))
+                {
+                    if (rowNumberAsArray.Width * rowNumberAsArray.Height == 1)
+                        rowNumber = rowNumberAsArray[0, 0];
+                    else
+                        return XLError.IncompatibleValue;
+                }
+                else
+                {
+                    if (!rowNumberAsReference.TryGetSingleCellValue(out rowNumber, ctx))
+                        return XLError.IncompatibleValue;
+                }
+            }
 
             ScalarValue columnNumber = 1;
             if (p.Length > 2)
-                p[2].TryPickScalar(out columnNumber, out _);
+            {
+                if (!p[2].TryPickScalar(out columnNumber, out var columnNumberAsCollection))
+                {
+                    if (columnNumberAsCollection.TryPickT0(out var columnNumberAsArray, out var columnNumberAsReference))
+                    {
+                        if (columnNumberAsArray.Width * columnNumberAsArray.Height == 1)
+                            columnNumber = columnNumberAsArray[0, 0];
+                        else
+                            return XLError.IncompatibleValue;
+                    }
+                    else
+                    {
+                        if (!columnNumberAsReference.TryGetSingleCellValue(out columnNumber, ctx))
+                            return XLError.IncompatibleValue;
+                    }
+                }
+            }
 
             if (rangeArray.Width > 1 && rangeArray.Height > 1)
             {
@@ -191,8 +221,21 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
         private static AnyValue Match(CalcContext ctx, Span<AnyValue> p)
         {
-            if (!p[0].TryPickScalar(out var lookupValue, out _))
-                return XLError.IncompatibleValue;
+            if (!p[0].TryPickScalar(out var lookupValue, out var lookupValueAsCollection))
+            {
+                if (lookupValueAsCollection.TryPickT0(out var lookupValueAsArray, out var lookupValueAsReference))
+                {
+                    if (lookupValueAsArray.Width * lookupValueAsArray.Height == 1)
+                        lookupValue = lookupValueAsArray[0, 0];
+                    else
+                        return XLError.IncompatibleValue;
+                }
+                else
+                {
+                    if (!lookupValueAsReference.TryGetSingleCellValue(out lookupValue, ctx))
+                        return XLError.IncompatibleValue;
+                }
+            }
 
             var rangeValue = p[1];
             if (rangeValue.TryPickScalar(out _, out var range))

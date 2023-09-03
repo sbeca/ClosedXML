@@ -18,7 +18,7 @@ namespace ClosedXML.Excel.CalcEngine
 
         public static void Register(FunctionRegistry ce)
         {
-            ce.RegisterFunction("ABS", 1, 1, Abs, FunctionFlags.Scalar, AllowRange.All);
+            ce.RegisterFunction("ABS", 1, 1, Abs, FunctionFlags.Range | FunctionFlags.ReturnsArray, AllowRange.All);
             ce.RegisterFunction("ACOS", 1, Acos);
             ce.RegisterFunction("ACOSH", 1, Acosh);
             ce.RegisterFunction("ACOT", 1, Acot);

@@ -171,7 +171,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                 if (column_num > rangeArray.Width)
                     return XLError.CellReference;
 
-                return rangeArray[row_num - 1, column_num - 1].ToAnyValue();
+                return rangeArray[row_num - 1, column_num > 0 ? column_num - 1 : 0].ToAnyValue();
             }
             else if (p.Length == 2)
             {
@@ -215,7 +215,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                 if (column_num > rangeArray.Width)
                     return XLError.CellReference;
 
-                return rangeArray[row_num - 1, column_num - 1].ToAnyValue();
+                return rangeArray[row_num - 1, column_num > 0 ? column_num - 1 : 0].ToAnyValue();
             }
         }
 

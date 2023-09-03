@@ -223,6 +223,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
 
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4)"));
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, 1)"));
+            Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, 0)"));
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, )"));
 
             Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:J2, 1, 4)"));

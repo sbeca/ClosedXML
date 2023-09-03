@@ -291,6 +291,14 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [Test]
+        public void Match_WorksWithArrays()
+        {
+            Object value;
+            value = ws.Evaluate(@"=MATCH(1, {0,1,2}, 0)");
+            Assert.AreEqual(2, value);
+        }
+
+        [Test]
         public void Match_Exceptions()
         {
             Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(""Rep"", B2:I5)"));

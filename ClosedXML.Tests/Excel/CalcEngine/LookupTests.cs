@@ -219,6 +219,8 @@ namespace ClosedXML.Tests.Excel.CalcEngine
 
             Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:I2, 4)"));
 
+            Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:I2, B6)"));
+
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4)"));
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, 1)"));
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, )"));
@@ -251,6 +253,9 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         {
             Object value;
             value = ws.Evaluate(@"=MATCH(""Rep"", B2:I2, 0)");
+            Assert.AreEqual(4, value);
+
+            value = ws.Evaluate(@"=MATCH(E2, B2:I2, 0)");
             Assert.AreEqual(4, value);
 
             value = ws.Evaluate(@"=MATCH(""Rep"", A2:Z2, 0)");

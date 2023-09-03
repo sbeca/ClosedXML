@@ -331,12 +331,21 @@ namespace ClosedXML.Tests.Excel.CalcEngine
 
             Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:I2, 4)"));
 
+            Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:I2, B6)"));
+
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4)"));
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, 1)"));
+            Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, 0)"));
             Assert.AreEqual(3, ws.Evaluate(@"=INDEX(B2:B20, 4, )"));
 
             Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:J2, 1, 4)"));
             Assert.AreEqual("Rep", ws.Evaluate(@"=INDEX(B2:J2, , 4)"));
+        }
+
+        [Test]
+        public void Index_WorksWithArrays()
+        {
+            Assert.AreEqual(1, ws.Evaluate(@"=INDEX({0,1,2}, 2)"));
         }
 
         [Test]
@@ -357,6 +366,9 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         {
             Object value;
             value = ws.Evaluate(@"=MATCH(""Rep"", B2:I2, 0)");
+            Assert.AreEqual(4, value);
+
+            value = ws.Evaluate(@"=MATCH(E2, B2:I2, 0)");
             Assert.AreEqual(4, value);
 
             value = ws.Evaluate(@"=MATCH(""Rep"", A2:Z2, 0)");
@@ -400,9 +412,17 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [Test]
+        public void Match_WorksWithArrays()
+        {
+            Object value;
+            value = ws.Evaluate(@"=MATCH(1, {0,1,2}, 0)");
+            Assert.AreEqual(2, value);
+        }
+
+        [Test]
         public void Match_Exceptions()
         {
-            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate(@"=MATCH(""Rep"", B2:I5)"));
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(""Rep"", B2:I5)"));
             Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(""Dummy"", B2:I2, 0)"));
             Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(4.5,B3:B45,-1)"));
         }

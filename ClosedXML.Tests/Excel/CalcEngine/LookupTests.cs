@@ -228,6 +228,12 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [Test]
+        public void Index_WorksWithArrays()
+        {
+            Assert.AreEqual(1, ws.Evaluate(@"=INDEX({0,1,2}, 2)"));
+        }
+
+        [Test]
         public void Index_Exceptions()
         {
             Assert.AreEqual(XLError.CellReference, ws.Evaluate(@"INDEX(B2:I10, 20, 1)"));

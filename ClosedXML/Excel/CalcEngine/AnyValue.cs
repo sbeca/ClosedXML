@@ -635,7 +635,7 @@ namespace ClosedXML.Excel.CalcEngine
         ///     Return 1 (positive) if left greater than left
         ///     Return 0 if both operands are considered equal.
         /// </returns>
-        private static OneOf<int, XLError> CompareValues(ScalarValue left, ScalarValue right, CultureInfo culture)
+        internal static OneOf<int, XLError> CompareValues(ScalarValue left, ScalarValue right, CultureInfo culture)
         {
             return left.Match(culture,
                 _ => right.Match<OneOf<int, XLError>, CultureInfo>(culture,

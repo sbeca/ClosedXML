@@ -285,12 +285,15 @@ namespace ClosedXML.Tests.Excel.CalcEngine
 
             value = ws.Evaluate(@"=MATCH(40, G3:G6, -1)");
             Assert.AreEqual(2, value);
+
+            value = ws.Evaluate(@"=MATCH(1, {0,1,2}, 0)");
+            Assert.AreEqual(2, value);
         }
 
         [Test]
         public void Match_Exceptions()
         {
-            Assert.AreEqual(XLError.IncompatibleValue, ws.Evaluate(@"=MATCH(""Rep"", B2:I5)"));
+            Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(""Rep"", B2:I5)"));
             Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(""Dummy"", B2:I2, 0)"));
             Assert.AreEqual(XLError.NoValueAvailable, ws.Evaluate(@"=MATCH(4.5,B3:B45,-1)"));
         }

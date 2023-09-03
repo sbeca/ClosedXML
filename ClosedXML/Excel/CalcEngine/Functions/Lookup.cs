@@ -25,7 +25,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             ce.RegisterFunction("INDEX", 2, 4, Index, AllowRange.Only, 0, 1); // Uses an index to choose a value from a reference or array
             //ce.RegisterFunction("INDIRECT", , Indirect); // Returns a reference indicated by a text value
             //ce.RegisterFunction("LOOKUP", , Lookup); // Looks up values in a vector or array
-            ce.RegisterFunction("MATCH", 2, 3, Match, AllowRange.Only, 1); // Looks up values in a reference or array
+            ce.RegisterFunction("MATCH", 2, 3, Match, FunctionFlags.Range, AllowRange.Only, 1); // Looks up values in a reference or array
             //ce.RegisterFunction("OFFSET", , Offset); // Returns a reference offset from a given reference
             ce.RegisterFunction("ROW", 0, 1, Row, FunctionFlags.Range, AllowRange.All); // Returns the row number of a reference
             ce.RegisterFunction("ROWS", 1, 1, Adapt(Rows), FunctionFlags.Range, AllowRange.All); // Returns the number of rows in a reference
@@ -166,22 +166,39 @@ namespace ClosedXML.Excel.CalcEngine.Functions
             }
         }
 
-        private static object Match(List<Expression> p)
+        private static AnyValue Match(CalcContext ctx, Span<AnyValue> p)
         {
-            var lookup_value = p[0];
-
-            if (!CalcEngineHelpers.TryExtractRange(p[1], out var range, out var error))
-                return error;
-
-            int match_type = 1;
-            if (p.Count > 2)
-                match_type = Math.Sign((int)p[2]);
-
-            if (range.ColumnCount() != 1 && range.RowCount() != 1)
+            if (!p[0].TryPickScalar(out var lookupValue, out _))
                 return XLError.IncompatibleValue;
 
+            var rangeValue = p[1];
+            if (rangeValue.TryPickScalar(out _, out var range))
+                return XLError.NoValueAvailable;
+            if (!range.TryPickT0(out var rangeArray, out var rangeReference))
+            {
+                if (rangeReference.Areas.Count > 1)
+                    return XLError.NoValueAvailable;
+
+                var singleAreaRange = ctx.Worksheet.Range(rangeReference.Areas.Single());
+                // Reduce the amount of work we have to do by excluding any unused cells from the end of the range
+                var rangeAddressToUse = new XLRangeAddress((XLAddress)singleAreaRange.FirstCell().Address, (XLAddress)singleAreaRange.LastCellUsed().Address);
+                rangeArray = new ReferenceArray(rangeAddressToUse, ctx);
+            }
+
+            int matchType = 1;
+            if (p.Length > 2)
+            {
+                if (!p[2].TryPickScalar(out var matchTypeScalar, out _) || !matchTypeScalar.IsNumber)
+                    return XLError.IncompatibleValue;
+
+                matchType = Math.Sign(matchTypeScalar.GetNumber());
+            }
+
+            if (rangeArray.Width != 1 && rangeArray.Height != 1)
+                return XLError.NoValueAvailable;
+
             Predicate<int> lookupPredicate = null;
-            switch (match_type)
+            switch (matchType)
             {
                 case 0:
                     lookupPredicate = i => i == 0;
@@ -199,43 +216,61 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                     return XLError.NoValueAvailable;
             }
 
-            IXLCell foundCell = null;
-
-            if (match_type == 0)
-                foundCell = range
-                    .CellsUsed(XLCellsUsedOptions.Contents, c => lookupPredicate.Invoke(new Expression(c.Value).CompareTo(lookup_value)))
-                    .FirstOrDefault();
-            else
+            Func<ScalarValue, ScalarValue, bool> comparePredicate = (c1, c2) =>
             {
-                var isFirst = true;
-                XLCellValue previousValue = Blank.Value;
-                foundCell = range
-                    .CellsUsed(XLCellsUsedOptions.Contents)
-                    .TakeWhile(c =>
+                var compare = AnyValue.CompareValues(c1, c2, ctx.Culture);
+                if (compare.TryPickT0(out var compareValue, out _))
+                    return lookupPredicate.Invoke(compareValue);
+                else
+                    return false;
+            };
+
+            int foundValue = 0;
+            var isFirst = true;
+            var doneSearching = false;
+            ScalarValue previousValue = ScalarValue.Blank;
+
+            for (int y = 0; y < rangeArray.Height; ++y)
+            {
+                for (int x = 0; x < rangeArray.Width; ++x)
+                {
+                    var current = rangeArray[y, x];
+
+                    if (matchType == 0)
                     {
-                        var currentCellExpression = new Expression(c.Value);
+                        if (comparePredicate.Invoke(current, lookupValue))
+                            return (y * rangeArray.Width) + x + 1;
+                    }
+                    else
+                    {
                         if (!isFirst)
                         {
-                            // When match_type != 0, we have to assume that the order of the items being search is ascending or descending
-                            var previousValueExpression = new Expression(previousValue);
-                            if (!lookupPredicate.Invoke(previousValueExpression.CompareTo(currentCellExpression)))
-                                return false;
+                            // When matchType != 0, we have to assume that the order of the items being search is ascending or descending
+                            if (!comparePredicate(previousValue, current))
+                            {
+                                doneSearching = true;
+                                break;
+                            }
                         }
 
                         isFirst = false;
-                        previousValue = c.Value;
+                        previousValue = current;
 
-                        return lookupPredicate.Invoke(currentCellExpression.CompareTo(lookup_value));
-                    })
-                    .LastOrDefault();
+                        if (comparePredicate(current, lookupValue))
+                        {
+                            foundValue = (y * rangeArray.Width) + x + 1;
+                        }
+                    }
+                }
+
+                if (doneSearching)
+                    break;
             }
 
-            if (foundCell == null)
+            if (foundValue > 0)
+                return foundValue;
+            else
                 return XLError.NoValueAvailable;
-
-            var firstCell = range.FirstCell();
-
-            return (foundCell.Address.ColumnNumber - firstCell.Address.ColumnNumber + 1) * (foundCell.Address.RowNumber - firstCell.Address.RowNumber + 1);
         }
 
         private static AnyValue Row(CalcContext ctx, Span<AnyValue> p)

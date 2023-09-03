@@ -1,5 +1,6 @@
 ﻿// Keep this file CodeMaid organised and cleaned
 using ClosedXML.Excel;
+using ClosedXML.Excel.CalcEngine;
 using NUnit.Framework;
 using System;
 using System.Globalization;
@@ -24,6 +25,23 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         {
             var actual = (double)XLWorkbook.EvaluateExpr(string.Format(@"ABS({0})", input.ToString(CultureInfo.InvariantCulture)));
             Assert.AreEqual(-input, actual, tolerance * 10);
+        }
+
+        [Test]
+        public void Abs_WorksWithArray()
+        {
+            using var wb = new XLWorkbook();
+            var worksheet = (XLWorksheet)wb.AddWorksheet();
+
+            var calcEngine = new XLCalcEngine(CultureInfo.CurrentCulture);
+            var ctx = new CalcContext(calcEngine, CultureInfo.CurrentCulture, wb, worksheet, null);
+            var value = calcEngine.EvaluateFormula("ABS({-1,0,1})", ctx);
+
+            Assert.That(value.IsArray);
+            var valueArray = value.GetArray();
+            Assert.AreEqual(1, valueArray[0, 0].GetNumber());
+            Assert.AreEqual(0, valueArray[0, 1].GetNumber());
+            Assert.AreEqual(1, valueArray[0, 2].GetNumber());
         }
 
         [TestCase(-1, 3.141592654)]

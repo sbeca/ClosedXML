@@ -467,6 +467,13 @@ namespace ClosedXML.Excel.CalcEngine
 
         #endregion
 
+        #region Math operations
+
+        public AnyValue Abs(CalcContext context)
+            => UnaryOperation(this, x => Math.Abs(x), context);
+
+        #endregion
+
         public static AnyValue Concat(in AnyValue left, in AnyValue right, CalcContext context)
         {
             return BinaryOperation(in left, in right, static (in ScalarValue leftItem, in ScalarValue rightItem, CalcContext ctx) =>

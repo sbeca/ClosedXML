@@ -19,7 +19,7 @@ namespace ClosedXML.Excel.CalcEngine
 
         public static void Register(FunctionRegistry ce)
         {
-            ce.RegisterFunction("ABS", 1, 1, Adapt(Abs), FunctionFlags.Scalar);
+            ce.RegisterFunction("ABS", 1, 1, Abs, FunctionFlags.Range | FunctionFlags.ReturnsArray, AllowRange.All);
             ce.RegisterFunction("ACOS", 1, Acos);
             ce.RegisterFunction("ACOSH", 1, Acosh);
             ce.RegisterFunction("ACOT", 1, Acot);
@@ -132,9 +132,9 @@ namespace ClosedXML.Excel.CalcEngine
             return radians / Math.PI * 200.0;
         }
 
-        private static AnyValue Abs(double number)
+        private static AnyValue Abs(CalcContext ctx, Span<AnyValue> p)
         {
-            return Math.Abs(number);
+            return p[0].Abs(ctx);
         }
 
         private static object Acos(List<Expression> p)

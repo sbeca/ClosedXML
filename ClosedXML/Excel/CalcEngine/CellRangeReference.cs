@@ -54,7 +54,7 @@ namespace ClosedXML.Excel.CalcEngine
             try
             {
                 _evaluating = true;
-                return cell.Value.ToObject();
+                return GetCellValue((XLCell)cell).ToObject();
             }
             finally
             {
@@ -80,13 +80,18 @@ namespace ClosedXML.Excel.CalcEngine
         private static XLCellValue GetCellValue(XLWorksheet sheet, int ro, int co)
         {
             var cell = sheet.GetCell(ro, co);
+            return GetCellValue(cell);
+        }
+
+        private static XLCellValue GetCellValue(XLCell cell)
+        {
             if (cell is null)
                 return Blank.Value;
 
             if (cell.Formula is null || !cell.Formula.IsDirty)
                 return cell.CachedValue;
 
-            throw new GettingDataException(new XLBookPoint(sheet.SheetId, new XLSheetPoint(ro, co)));
+            throw new GettingDataException(new XLBookPoint(cell.Worksheet.SheetId, cell.SheetPoint));
         }
     }
 }

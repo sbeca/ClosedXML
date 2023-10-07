@@ -546,9 +546,8 @@ namespace ClosedXML.Excel
                 return;
             }
 
-            // TODO: Only one cell, somehow
             var wb = Worksheet.Workbook;
-            wb.CalcEngine.Recalculate(wb, null);
+            wb.CalcEngine.Recalculate(wb, null, new XLBookPoint(Worksheet, SheetPoint));
         }
 
         /// <summary>

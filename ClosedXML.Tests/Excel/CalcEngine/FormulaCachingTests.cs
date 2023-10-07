@@ -328,5 +328,54 @@ namespace ClosedXML.Tests.Excel.CalcEngine
                 Assert.AreEqual(new DateTime(2019, 1, 1, 14, 0, 0), cell.CachedValue);
             }
         }
+
+        [Test]
+        public void OnlyRequiredCellsAreCalculated()
+        {
+            using (var wb = new XLWorkbook())
+            {
+                var ws = wb.AddWorksheet("Test");
+
+                ws.Cell("A1").Value = 1;
+                ws.Cell("A2").Value = 2;
+                ws.Cell("A3").SetFormulaA1("A1+A2");
+                ws.Cell("A4").SetFormulaA1("A2+A3");
+                ws.Cell("A5").SetFormulaA1("A3+A4");
+                ws.Cell("A6").SetFormulaA1("A4+A5");
+
+                // Check all formulas need recalc
+                Assert.IsTrue(ws.Cell("A3").NeedsRecalculation);
+                Assert.IsTrue(ws.Cell("A4").NeedsRecalculation);
+                Assert.IsTrue(ws.Cell("A5").NeedsRecalculation);
+                Assert.IsTrue(ws.Cell("A6").NeedsRecalculation);
+
+                // Run a calc to change states
+                Assert.AreEqual(5, ws.Cell("A4").Value);
+
+                // Check that only cells needed for above calc were calculated
+                Assert.IsFalse(ws.Cell("A3").NeedsRecalculation);
+                Assert.IsFalse(ws.Cell("A4").NeedsRecalculation);
+                Assert.IsTrue(ws.Cell("A5").NeedsRecalculation);
+                Assert.IsTrue(ws.Cell("A6").NeedsRecalculation);
+
+                // Run a calc to change states
+                Assert.AreEqual(8, ws.Cell("A5").Value);
+
+                // Check that only cells needed for above calc were calculated
+                Assert.IsFalse(ws.Cell("A3").NeedsRecalculation);
+                Assert.IsFalse(ws.Cell("A4").NeedsRecalculation);
+                Assert.IsFalse(ws.Cell("A5").NeedsRecalculation);
+                Assert.IsTrue(ws.Cell("A6").NeedsRecalculation);
+
+                // Run a calc to change states
+                Assert.AreEqual(13, ws.Cell("A6").Value);
+
+                // Check that all cells have now been calculated
+                Assert.IsFalse(ws.Cell("A3").NeedsRecalculation);
+                Assert.IsFalse(ws.Cell("A4").NeedsRecalculation);
+                Assert.IsFalse(ws.Cell("A5").NeedsRecalculation);
+                Assert.IsFalse(ws.Cell("A6").NeedsRecalculation);
+            }
+        }
     }
 }

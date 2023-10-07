@@ -144,7 +144,7 @@ namespace ClosedXML.Excel.CalcEngine
         /// <summary>
         /// Recalculate a workbook or a sheet.
         /// </summary>
-        internal void Recalculate(XLWorkbook wb, uint? recalculateSheetId)
+        internal void Recalculate(XLWorkbook wb, uint? recalculateSheetId, XLBookPoint? pointToStopAfter = null)
         {
             // Lazy, so initialize chain from wb, if it is empty
             if (_chain is null || _dependencyTree is null)
@@ -158,8 +158,11 @@ namespace ClosedXML.Excel.CalcEngine
                     sheet => sheet.SheetId,
                     sheet => (sheet, sheet.Internals.CellsCollection.ValueSlice, sheet.Internals.CellsCollection.FormulaSlice));
 
+            bool pointToStopAfterIsNotNull = pointToStopAfter is not null;
+            bool hasCalculatedPointToStopAfter = false;
+
             // Each outer loop moves chain one cell ahead.
-            while (_chain.MoveAhead())
+            while (_chain.MoveAhead() && !hasCalculatedPointToStopAfter)
             {
                 // Inner loop that pushes supporting formulas ahead of current.
                 // It ends when a cell has been calculated and thus chain can move ahead.
@@ -200,6 +203,11 @@ namespace ClosedXML.Excel.CalcEngine
                         ApplyFormula(cellFormula, current.Point, sheetInfo.Sheet, sheetInfo.ValueSlice,
                             recalculateSheetId);
                         cellFormula.IsDirty = false;
+
+                        if (pointToStopAfterIsNotNull && current == pointToStopAfter)
+                        {
+                            hasCalculatedPointToStopAfter = true;
+                        }
 
                         // Break out of the inner loop, a dirty cell has been
                         // calculated and thus chain can move ahead.
@@ -286,7 +294,7 @@ namespace ClosedXML.Excel.CalcEngine
             {
                 RecalculateSheetId = recalculateSheetId
             };
-            var result = EvaluateFormula(expression, ctx);
+            var result = EvaluateFormula(expression, ctx, address is not null);
             if (ctx.UseImplicitIntersection)
             {
                 result = result.Match(
@@ -322,11 +330,39 @@ namespace ClosedXML.Excel.CalcEngine
             return EvaluateFormula(nameFormula, ctx);
         }
 
-        private AnyValue EvaluateFormula(string expression, CalcContext ctx)
+        private AnyValue EvaluateFormula(string expression, CalcContext ctx, bool formulaIsForCell = true)
         {
             var x = _cache[expression];
 
-            var result = x.AstRoot.Accept(ctx, _visitor);
+            AnyValue result;
+
+            if (formulaIsForCell)
+            {
+                result = x.AstRoot.Accept(ctx, _visitor);
+            }
+            else
+            {
+                // If this formula is not associated with a specific cell, e.g. someone is just running
+                // something like ws.Evaluate("SERIESSUM(A2,0,2,A3:A6)"), then this method won't be called
+                // within the calc chain recalculation and we need to handle doing that here if needed
+                while (true)
+                {
+                    try
+                    {
+                        result = x.AstRoot.Accept(ctx, _visitor);
+
+                        // Break out of the loop as we successfully calculated
+                        // the result if we reached this point
+                        break;
+                    }
+                    catch (GettingDataException ex)
+                    {
+                        // We're missing cell data so let's go and calc it
+                        Recalculate(ctx.Workbook, ctx.RecalculateSheetId, ex.Point);
+                    }
+                }
+            }
+
             return result;
         }
 

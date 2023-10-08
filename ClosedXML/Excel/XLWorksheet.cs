@@ -1723,6 +1723,11 @@ namespace ClosedXML.Excel
             Workbook.CalcEngine.Recalculate(Workbook, SheetId);
         }
 
+        public void EnsureAllFormulasCalculated()
+        {
+            Workbook.CalcEngine.Recalculate(Workbook, SheetId, true);
+        }
+
         public String Author { get; set; }
 
         public override string ToString()

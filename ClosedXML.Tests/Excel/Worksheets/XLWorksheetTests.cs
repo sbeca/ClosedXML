@@ -1367,5 +1367,54 @@ namespace ClosedXML.Tests
             Assert.Throws<ArgumentException>(() => _ = ws.Range("DEAD4:BEEF10"));
             Assert.Throws<ArgumentException>(() => _ = ws.Range("nonexistent_range"));
         }
+
+        [Test]
+        public void EnsureAllFormulasCalculated_recalculates_all_formulas_in_sheet_and_dependencies()
+        {
+            using var wb = new XLWorkbook();
+            var sut = wb.AddWorksheet("sut");
+            var other = wb.AddWorksheet("other");
+
+            other.Cell("A1").Value = 7;
+            other.Cell("A2").FormulaA1 = "A1+3";
+            other.Cell("A3").FormulaA1 = "A1+3";
+            Assert.AreEqual(10.0, other.Cell("A2").Value);
+            Assert.AreEqual(10.0, other.Cell("A3").Value);
+
+            // Change the supporting value, but without recalculation of dependent
+            // formula, thus the value stays the same.
+            other.Cell("A1").Value = 5;
+
+            Assert.True(other.Cell("A2").NeedsRecalculation);
+            Assert.True(other.Cell("A3").NeedsRecalculation);
+            Assert.AreEqual(10.0, other.Cell("A2").CachedValue);
+            Assert.AreEqual(10.0, other.Cell("A3").CachedValue);
+
+            // Tested formula depends on a dirty formula from other sheet.
+            sut.Cell("A1").FormulaA1 = "other!A3+5";
+            sut.Cell("A2").FormulaA1 = "1+2";
+
+            Assert.True(sut.Cell("A1").NeedsRecalculation);
+            Assert.True(sut.Cell("A2").NeedsRecalculation);
+            Assert.AreEqual(Blank.Value, sut.Cell("A1").CachedValue);
+            Assert.AreEqual(Blank.Value, sut.Cell("A2").CachedValue);
+
+            sut.EnsureAllFormulasCalculated();
+
+            // Formulas in other sheets not part of dependencies have kept the value - not affected by recalculation of a sut sheet.
+            Assert.True(other.Cell("A2").NeedsRecalculation);
+            Assert.AreEqual(10.0, other.Cell("A2").CachedValue);
+
+            // Formulas in other sheets that are part of dependencies have been updated - they are affected by recalculation of a sut sheet.
+            Assert.False(other.Cell("A3").NeedsRecalculation);
+            Assert.AreEqual(8.0, other.Cell("A3").CachedValue);
+
+            // Formulas in sut sheet were recalculated - they are affected by recalculation of a sut sheet.
+            Assert.False(sut.Cell("A1").NeedsRecalculation);
+            Assert.AreEqual(13.0, sut.Cell("A1").CachedValue);
+
+            Assert.False(sut.Cell("A2").NeedsRecalculation);
+            Assert.AreEqual(3.0, sut.Cell("A2").CachedValue);
+        }
     }
 }

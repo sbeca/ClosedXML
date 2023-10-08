@@ -150,7 +150,6 @@ namespace ClosedXML.Excel.CalcEngine
         /// <summary>
         /// Recalculate a workbook or a sheet.
         /// </summary>
-        internal void Recalculate(XLWorkbook wb, uint? recalculateSheetId)
         internal void Recalculate(XLWorkbook wb, uint? recalculateSheetId, bool includeDependenciesInRecalculateSheetId = false, XLBookPoint? pointToStopAfter = null)
         {
             // Lazy, so initialize chain from wb, if it is empty
@@ -379,7 +378,7 @@ namespace ClosedXML.Excel.CalcEngine
                     catch (GettingDataException ex)
                     {
                         // We're missing cell data so let's go and calc it
-                        Recalculate(ctx.Workbook, ctx.RecalculateSheetId, ex.Point);
+                        Recalculate(ctx.Workbook, ctx.RecalculateSheetId, ctx.IncludeDependenciesInRecalculateSheetId, ex.Point);
                     }
                 }
             }

@@ -455,6 +455,11 @@ namespace ClosedXML.Excel
         /// </summary>
         void RecalculateAllFormulas();
 
+        /// <summary>
+        /// Ensure all cell formulas in the sheet have been calculated, including dependencies in other sheets.
+        /// </summary>
+        void EnsureAllFormulasCalculated();
+
         String Author { get; set; }
 
         IXLPictures Pictures { get; }

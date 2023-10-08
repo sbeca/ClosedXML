@@ -63,10 +63,16 @@ namespace ClosedXML.Excel.CalcEngine
         public bool IsArrayCalculation { get; set; }
 
         /// <summary>
-        /// Sheet that is being recalculated. If set, formula can read dirty
-        /// values from other sheets, but not from this sheetId.
+        /// Sheet that is being recalculated. If set, and <see cref="IncludeDependenciesInRecalculateSheetId"/> is <c>false</c>,
+        /// then formula can read dirty values from other sheets, but not from this sheetId.
         /// </summary>
         public uint? RecalculateSheetId { get; set; }
+
+        /// <summary>
+        /// When <see cref="RecalculateSheetId"/> is set, a <c>true</c> value for this field will cause dependencies on
+        /// other sheets to be calculated, while a <c>false</c> value will use dirty values from other sheets.
+        /// </summary>
+        public bool IncludeDependenciesInRecalculateSheetId { get; set; }
 
         internal XLSheetPoint FormulaSheetPoint => new(FormulaAddress.RowNumber, FormulaAddress.ColumnNumber);
 
@@ -84,7 +90,7 @@ namespace ClosedXML.Excel.CalcEngine
                 return valueSlice.GetCellValue(point);
 
             // Used when only one sheet should be recalculated, leaving other sheets with their data.
-            if (RecalculateSheetId is not null && sheet.SheetId != RecalculateSheetId.Value)
+            if (RecalculateSheetId is not null && sheet.SheetId != RecalculateSheetId.Value && !IncludeDependenciesInRecalculateSheetId)
                 return valueSlice.GetCellValue(point);
 
             // A special branch for functions out of cells (e.g. worksheet.Evaluate("A1+2")).

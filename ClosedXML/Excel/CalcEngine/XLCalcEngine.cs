@@ -150,7 +150,7 @@ namespace ClosedXML.Excel.CalcEngine
         /// <summary>
         /// Recalculate a workbook or a sheet.
         /// </summary>
-        internal void Recalculate(XLWorkbook wb, uint? recalculateSheetId)
+        internal void Recalculate(XLWorkbook wb, uint? recalculateSheetId, bool includeDependenciesInRecalculateSheetId = false)
         {
             // Lazy, so initialize chain from wb, if it is empty
             if (_chain is null || _dependencyTree is null)
@@ -164,6 +164,8 @@ namespace ClosedXML.Excel.CalcEngine
                     sheet => sheet.SheetId,
                     sheet => (sheet, sheet.Internals.CellsCollection.ValueSlice, sheet.Internals.CellsCollection.FormulaSlice));
 
+            bool calculatingRequiredDependency = false;
+
             // Each outer loop moves chain one cell ahead.
             while (_chain.MoveAhead())
             {
@@ -175,7 +177,7 @@ namespace ClosedXML.Excel.CalcEngine
                     var sheetId = current.SheetId;
 
                     // Skip dirty cells from sheets that are not being recalculated
-                    if (recalculateSheetId is not null && sheetId != recalculateSheetId.Value)
+                    if (recalculateSheetId is not null && sheetId != recalculateSheetId.Value && !calculatingRequiredDependency)
                     {
                         // Even though cell is dirty, it's in the ignored sheet and
                         // thus chain can move ahead.
@@ -204,8 +206,10 @@ namespace ClosedXML.Excel.CalcEngine
                     try
                     {
                         ApplyFormula(cellFormula, current.Point, sheetInfo.Sheet, sheetInfo.ValueSlice,
-                            recalculateSheetId);
+                            recalculateSheetId, includeDependenciesInRecalculateSheetId);
                         cellFormula.IsDirty = false;
+
+                        calculatingRequiredDependency = false;
 
                         // Break out of the inner loop, a dirty cell has been
                         // calculated and thus chain can move ahead.
@@ -214,6 +218,11 @@ namespace ClosedXML.Excel.CalcEngine
                     catch (GettingDataException ex)
                     {
                         _chain.MoveToCurrent(ex.Point);
+
+                        if (includeDependenciesInRecalculateSheetId)
+                        {
+                            calculatingRequiredDependency = true;
+                        }
                     }
                 }
             }
@@ -224,7 +233,7 @@ namespace ClosedXML.Excel.CalcEngine
             _chain.Reset();
         }
 
-        private void ApplyFormula(XLCellFormula formula, XLSheetPoint appliedPoint, XLWorksheet sheet, ValueSlice valueSlice, uint? recalculateSheetId)
+        private void ApplyFormula(XLCellFormula formula, XLSheetPoint appliedPoint, XLWorksheet sheet, ValueSlice valueSlice, uint? recalculateSheetId, bool includeDependenciesInRecalculateSheetId = false)
         {
             var formulaText = formula.GetFormulaA1(appliedPoint);
             if (formula.Type == FormulaType.Normal)
@@ -234,7 +243,8 @@ namespace ClosedXML.Excel.CalcEngine
                     sheet.Workbook,
                     sheet,
                     new XLAddress(sheet, appliedPoint.Row, appliedPoint.Column, true, true),
-                    recalculateSheetId: recalculateSheetId);
+                    recalculateSheetId: recalculateSheetId,
+                    includeDependenciesInRecalculateSheetId: includeDependenciesInRecalculateSheetId);
                 valueSlice.SetCellValue(appliedPoint, single.ToCellValue());
             }
             else if (formula.Type == FormulaType.Array)
@@ -243,7 +253,7 @@ namespace ClosedXML.Excel.CalcEngine
                 var range = formula.Range;
                 var leftTopCorner = range.FirstPoint;
                 var masterCell = sheet.Cell(leftTopCorner.Row, leftTopCorner.Column);
-                var array = EvaluateArrayFormula(formulaText, masterCell, recalculateSheetId);
+                var array = EvaluateArrayFormula(formulaText, masterCell, recalculateSheetId, includeDependenciesInRecalculateSheetId);
 
                 // The array from formula can be smaller or larger than the
                 // range of cells it should fit into. Broadcast it to the size.
@@ -277,7 +287,12 @@ namespace ClosedXML.Excel.CalcEngine
         /// <param name="recursive">Should the data necessary for this formula (not deeper ones)
         /// be calculated recursively? Used only for non-cell calculations.</param>
         /// <param name="recalculateSheetId">
-        /// If set, calculation  will allow dirty reads from other sheets than the passed one.
+        /// If set, and <paramref name="includeDependenciesInRecalculateSheetId"/> is <c>false</c>,
+        /// calculation will allow dirty reads from other sheets than the passed one.
+        /// </param>
+        /// <param name="includeDependenciesInRecalculateSheetId">
+        /// When <paramref name="recalculateSheetId"/> is set, a <c>true</c> value will cause dependencies on
+        /// other sheets to be calculated, while a <c>false</c> value will use dirty values from other sheets.
         /// </param>
         /// <returns>The value of the expression.</returns>
         /// <remarks>
@@ -286,11 +301,12 @@ namespace ClosedXML.Excel.CalcEngine
         /// method and then using the Expression.Evaluate method to evaluate
         /// the parsed expression.
         /// </remarks>
-        internal ScalarValue EvaluateFormula(string expression, XLWorkbook? wb = null, XLWorksheet? ws = null, IXLAddress? address = null, bool recursive = false, uint? recalculateSheetId = null)
+        internal ScalarValue EvaluateFormula(string expression, XLWorkbook? wb = null, XLWorksheet? ws = null, IXLAddress? address = null, bool recursive = false, uint? recalculateSheetId = null, bool includeDependenciesInRecalculateSheetId = false)
         {
             var ctx = new CalcContext(this, _culture, wb, ws, address, recursive)
             {
-                RecalculateSheetId = recalculateSheetId
+                RecalculateSheetId = recalculateSheetId,
+                IncludeDependenciesInRecalculateSheetId = includeDependenciesInRecalculateSheetId
             };
             var result = EvaluateFormula(expression, ctx);
             if (ctx.UseImplicitIntersection)
@@ -308,12 +324,13 @@ namespace ClosedXML.Excel.CalcEngine
             return ToCellContentValue(result, ctx);
         }
 
-        private Array EvaluateArrayFormula(string expression, XLCell masterCell, uint? recalculateSheetId)
+        private Array EvaluateArrayFormula(string expression, XLCell masterCell, uint? recalculateSheetId, bool includeDependenciesInRecalculateSheetId = false)
         {
             var ctx = new CalcContext(this, _culture, masterCell)
             {
                 IsArrayCalculation = true,
-                RecalculateSheetId = recalculateSheetId
+                RecalculateSheetId = recalculateSheetId,
+                IncludeDependenciesInRecalculateSheetId = includeDependenciesInRecalculateSheetId
             };
             var result = EvaluateFormula(expression, ctx);
             if (result.TryPickSingleOrMultiValue(out var single, out var multi, ctx))

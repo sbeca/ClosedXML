@@ -899,17 +899,18 @@ namespace ClosedXML.Excel
 
         public Boolean IsEmpty(XLCellsUsedOptions options)
         {
-            var isValueEmpty = SliceCellValue.Type switch
+            var cellValue = SliceCellValue; // Only call once in method to improve performance
+            var isValueEmpty = cellValue.Type switch
             {
                 XLDataType.Blank => true,
-                XLDataType.Text => SliceCellValue.GetText().Length == 0,
+                XLDataType.Text => cellValue.GetText().Length == 0,
                 _ => false
             };
 
             if (!isValueEmpty || HasFormula)
                 return false;
 
-            if (options.HasFlag(XLCellsUsedOptions.NormalFormats))
+            if (options.IsSet(XLCellsUsedOptions.NormalFormats))
             {
                 if (StyleValue.IncludeQuotePrefix)
                     return false;
@@ -930,17 +931,17 @@ namespace ClosedXML.Excel
             if (options.HasFlag(XLCellsUsedOptions.MergedRanges) && IsMerged())
                 return false;
 
-            if (options.HasFlag(XLCellsUsedOptions.Comments) && HasComment)
+            if (options.IsSet(XLCellsUsedOptions.Comments) && HasComment)
                 return false;
 
-            if (options.HasFlag(XLCellsUsedOptions.DataValidation) && HasDataValidation)
+            if (options.IsSet(XLCellsUsedOptions.DataValidation) && HasDataValidation)
                 return false;
 
-            if (options.HasFlag(XLCellsUsedOptions.ConditionalFormats)
+            if (options.IsSet(XLCellsUsedOptions.ConditionalFormats)
                 && Worksheet.ConditionalFormats.SelectMany(cf => cf.Ranges).Any(range => range.Contains(this)))
                 return false;
 
-            if (options.HasFlag(XLCellsUsedOptions.Sparklines) && HasSparkline)
+            if (options.IsSet(XLCellsUsedOptions.Sparklines) && HasSparkline)
                 return false;
 
             return true;

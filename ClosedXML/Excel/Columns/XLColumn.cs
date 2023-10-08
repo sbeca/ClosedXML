@@ -584,7 +584,7 @@ namespace ClosedXML.Excel
 
         public override Boolean IsEmpty(XLCellsUsedOptions options)
         {
-            if (options.HasFlag(XLCellsUsedOptions.NormalFormats) &&
+            if (options.IsSet(XLCellsUsedOptions.NormalFormats) &&
                 !StyleValue.Equals(Worksheet.StyleValue))
                 return false;
 

@@ -135,19 +135,19 @@ namespace ClosedXML.Excel
                 return candidates;
             }
 
-            if (_options.HasFlag(XLCellsUsedOptions.MergedRanges))
+            if (_options.IsSet(XLCellsUsedOptions.MergedRanges))
                 candidates = candidates.Union(
                     worksheet.Internals.MergedRanges.SelectMany(r => GetAllCellsInRange(r.RangeAddress)));
 
-            if (_options.HasFlag(XLCellsUsedOptions.ConditionalFormats))
+            if (_options.IsSet(XLCellsUsedOptions.ConditionalFormats))
                 candidates = candidates.Union(
                     worksheet.ConditionalFormats.SelectMany(cf => cf.Ranges.SelectMany(r => GetAllCellsInRange(r.RangeAddress))));
 
-            if (_options.HasFlag(XLCellsUsedOptions.DataValidation))
+            if (_options.IsSet(XLCellsUsedOptions.DataValidation))
                 candidates = candidates.Union(
                         worksheet.DataValidations.SelectMany(dv => dv.Ranges.SelectMany(r => GetAllCellsInRange(r.RangeAddress))));
 
-            if (_options.HasFlag(XLCellsUsedOptions.Sparklines))
+            if (_options.IsSet(XLCellsUsedOptions.Sparklines))
                 candidates = candidates.Union(
                     worksheet.SparklineGroups.SelectMany(sg => sg).Select(sl => XLSheetPoint.FromAddress(sl.Location.Address)));
 

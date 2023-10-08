@@ -2039,7 +2039,7 @@ namespace ClosedXML.Excel
 
             IEnumerable<IXLCell> cellsUsed = CellsUsed(opt, predicate);
 
-            if (options.HasFlag(XLCellsUsedOptions.ConditionalFormats))
+            if (options.IsSet(XLCellsUsedOptions.ConditionalFormats))
             {
                 cellsUsed = cellsUsed.Union(
                     Worksheet.ConditionalFormats
@@ -2048,7 +2048,7 @@ namespace ClosedXML.Excel
                         .Where(predicate)
                 );
             }
-            if (options.HasFlag(XLCellsUsedOptions.DataValidation))
+            if (options.IsSet(XLCellsUsedOptions.DataValidation))
             {
                 cellsUsed = cellsUsed.Union(
                     Worksheet.DataValidations
@@ -2058,7 +2058,7 @@ namespace ClosedXML.Excel
                         .Where(predicate)
                 );
             }
-            if (options.HasFlag(XLCellsUsedOptions.MergedRanges))
+            if (options.IsSet(XLCellsUsedOptions.MergedRanges))
             {
                 cellsUsed = cellsUsed.Union(
                     Worksheet.MergedRanges.GetIntersectedRanges(RangeAddress)

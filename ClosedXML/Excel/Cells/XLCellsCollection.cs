@@ -313,23 +313,24 @@ namespace ClosedXML.Excel
             public bool MoveNext()
             {
                 XLSheetPoint? current = null;
-                for (var i = 0; i < _enumerators.Count; ++i)
+                int initialEnumeratorsCount = _enumerators.Count;
+                for (var i = 0; i < initialEnumeratorsCount; ++i)
                 {
-                    var enumerator = _enumerators[i];
+                    var enumeratorCurrent = _enumerators[i].Current;
                     if (current is null || (
                             _reverse
-                                ? enumerator.Current.CompareTo(current.Value) > 0
-                                : enumerator.Current.CompareTo(current.Value) < 0
+                                ? enumeratorCurrent.CompareTo(current.Value) > 0
+                                : enumeratorCurrent.CompareTo(current.Value) < 0
                             ))
-                        current = enumerator.Current;
+                        current = enumeratorCurrent;
                 }
 
-                if (current == null)
+                if (current is null)
                     return false;
 
                 Current = current.Value;
 
-                for (var i = _enumerators.Count - 1; i >= 0; --i)
+                for (var i = initialEnumeratorsCount - 1; i >= 0; --i)
                 {
                     var enumerator = _enumerators[i];
                     if (enumerator.Current == current)

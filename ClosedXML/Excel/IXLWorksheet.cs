@@ -435,7 +435,7 @@ namespace ClosedXML.Excel
 
         IXLSparklineGroups SparklineGroups { get; }
 
-        IXLRanges SelectedRanges { get; }
+        IXLRanges? SelectedRanges { get; }
 
         /// <summary>
         /// The active cell of the worksheet.

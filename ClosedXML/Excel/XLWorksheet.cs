@@ -23,12 +23,14 @@ namespace ClosedXML.Excel
         private readonly XLRanges _selectedRanges;
 
         internal Int32 ZOrder = 1;
-        private String _name;
+        // _name can't actually be null but compiler complains without the ? so let's add it and just ! _name's usage elsewhere
+        private String? _name;
         internal Int32 _position;
 
         private Double _rowHeight;
         private Boolean _tabActive;
-        private XLSheetProtection _protection;
+        // _protection can't actually be null but compiler complains without the ? so let's add it and just ! _protection's usage elsewhere
+        private XLSheetProtection? _protection;
 
         /// <summary>
         /// Fake address to be used everywhere the invalid address is needed.
@@ -221,14 +223,14 @@ namespace ClosedXML.Excel
 
         public String Name
         {
-            get { return _name; }
+            get { return _name!; }
             set
             {
                 if (_name == value) return;
 
                 XLHelper.ValidateSheetName(value);
 
-                Workbook.WorksheetsInternal.Rename(_name, value);
+                if (_name != null) Workbook.WorksheetsInternal.Rename(_name, value);
                 _name = value;
             }
         }
@@ -449,7 +451,7 @@ namespace ClosedXML.Excel
             return Cell(row, column);
         }
 
-        IXLCell IXLWorksheet.Cell(string cellAddressInRange)
+        IXLCell? IXLWorksheet.Cell(string cellAddressInRange)
         {
             return Cell(cellAddressInRange) ?? throw new ArgumentException($"'{cellAddressInRange}' is not A1 address or workbook named range.");
         }
@@ -469,7 +471,7 @@ namespace ClosedXML.Excel
             return Range(rangeAddress);
         }
 
-        IXLRange IXLWorksheet.Range(string rangeAddress)
+        IXLRange? IXLWorksheet.Range(string rangeAddress)
         {
             return Range(rangeAddress) ?? throw new ArgumentException($"'{rangeAddress}' is not A1 address or named range.");
         }
@@ -633,7 +635,7 @@ namespace ClosedXML.Excel
             ((XLHeaderFooter)targetSheet.PageSetup.Footer).Changed = true;
             targetSheet.Outline = new XLOutline(Outline);
             targetSheet.SheetView = new XLSheetView(targetSheet, SheetView);
-            targetSheet.SelectedRanges.RemoveAll();
+            targetSheet.SelectedRanges?.RemoveAll();
 
             Pictures.ForEach(picture => picture.CopyTo(targetSheet));
             NamedRanges.ForEach(nr => nr.CopyTo(targetSheet));
@@ -642,7 +644,7 @@ namespace ClosedXML.Excel
             ConditionalFormats.ForEach(cf => cf.CopyTo(targetSheet));
             SparklineGroups.CopyTo(targetSheet);
             MergedRanges.ForEach(mr => targetSheet.Range(((XLRangeAddress)mr.RangeAddress).WithoutWorksheet()).Merge());
-            SelectedRanges.ForEach(sr => targetSheet.SelectedRanges.Add(targetSheet.Range(((XLRangeAddress)sr.RangeAddress).WithoutWorksheet())));
+            SelectedRanges?.ForEach(sr => targetSheet.SelectedRanges?.Add(targetSheet.Range(((XLRangeAddress)sr.RangeAddress).WithoutWorksheet())));
 
             if (AutoFilter.IsEnabled)
             {

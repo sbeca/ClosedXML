@@ -30,6 +30,12 @@ namespace ClosedXML.Excel
         private Boolean _tabActive;
         private XLSheetProtection _protection;
 
+        // Cache some values that in some common use cases get read often but don't change often.
+        // This can provide a massive 10x calculation speed improvement in some cases
+        private Boolean? _cachedIsEmptyValue = null;
+        private Boolean? _cachedIsEmptyAllContentsValue = null;
+        private XLCell? _cachedLastCellUsedValue = null;
+
         /// <summary>
         /// Fake address to be used everywhere the invalid address is needed.
         /// </summary>
@@ -1627,6 +1633,37 @@ namespace ClosedXML.Excel
             return (XLPivotTable)PivotTables.PivotTable(name);
         }
 
+        public override Boolean IsEmpty()
+        {
+            // Basically just implementation from XLRangeBase, but with caching
+
+            _cachedIsEmptyValue ??= base.IsEmpty();
+            return _cachedIsEmptyValue.Value;
+        }
+
+        public override Boolean IsEmpty(XLCellsUsedOptions options)
+        {
+            // Basically just implementation from XLRangeBase, but with some caching
+
+            if (options == XLCellsUsedOptions.AllContents)
+            {
+                _cachedIsEmptyAllContentsValue ??= base.IsEmpty(options);
+                return _cachedIsEmptyAllContentsValue.Value;
+            }
+            else
+            {
+                return base.IsEmpty(options);
+            }
+        }
+
+        internal override XLCell LastCellUsed()
+        {
+            // Basically just implementation from XLRangeBase, but with caching
+
+            _cachedLastCellUsedValue ??= base.LastCellUsed();
+            return _cachedLastCellUsedValue;
+        }
+
         public override IXLCells Cells()
         {
             return Cells(true, XLCellsUsedOptions.All);
@@ -1708,6 +1745,14 @@ namespace ClosedXML.Excel
         /// Address of active cell/cursor in the worksheet.
         /// </summary>
         internal XLSheetPoint? ActiveCell { get; set; }
+
+        internal void MarkDirty()
+        {
+            // Something has changed in our stored data so we need to clear our cached values
+            _cachedIsEmptyValue = null;
+            _cachedIsEmptyAllContentsValue = null;
+            _cachedLastCellUsedValue = null;
+    }
 
         private XLCalcEngine CalcEngine => Workbook.CalcEngine;
 
@@ -2000,6 +2045,8 @@ namespace ClosedXML.Excel
                     rangeIndex.Add(range);
                 }
             }
+
+            MarkDirty();
         }
 
         internal void DeleteColumn(int columnNumber)

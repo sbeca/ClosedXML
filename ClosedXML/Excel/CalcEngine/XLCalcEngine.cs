@@ -124,6 +124,7 @@ namespace ClosedXML.Excel.CalcEngine
             foreach (var sheet in sheets)
             {
                 sheet.Internals.CellsCollection.FormulaSlice.MarkDirty(XLSheetRange.Full);
+                sheet.MarkDirty();
             }
         }
 
@@ -139,6 +140,8 @@ namespace ClosedXML.Excel.CalcEngine
                 var bookArea = new XLBookArea(sheet.Name, area);
                 _dependencyTree.MarkDirty(bookArea);
             }
+
+            sheet.MarkDirty();
         }
 
         /// <summary>

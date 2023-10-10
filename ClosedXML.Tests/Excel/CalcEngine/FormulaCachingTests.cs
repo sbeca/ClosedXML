@@ -328,5 +328,43 @@ namespace ClosedXML.Tests.Excel.CalcEngine
                 Assert.AreEqual(new DateTime(2019, 1, 1, 14, 0, 0), cell.CachedValue);
             }
         }
+
+        [Test]
+        public void WorksheetCachingIsClearedOnChangedValue()
+        {
+            // Test to make sure our caching of some data in XLWorksheet doesn't
+            // hold onto cached values after they are no longer correct
+
+            using (var wb = new XLWorkbook())
+            {
+                var ws1 = (XLWorksheet)wb.AddWorksheet("Sheet1");
+                var ws2 = (XLWorksheet)wb.AddWorksheet("Sheet2");
+
+                // Set up a formula that makes use of the cached value code path.
+                // SUMIFS is currently one of those functions
+                ws2.Cell("A1").FormulaA1 = "SUMIFS(Sheet1!C1:D5,Sheet1!A1:B5,\">20\")";
+
+                // Calculate the formula on an empty sheet, so that the IsEmpty cache is set to "true"
+                Assert.AreEqual(0, ws2.Cell("A1").Value);
+                Assert.IsTrue(ws1.IsEmpty());
+                Assert.IsNull(ws1.LastCellUsed());
+
+                // Insert some data into the empty sheet, which should clear the IsEmpty cache
+                ws1.FirstCell().InsertData(new object[]
+                {
+                    (10, 10, 1, 2),
+                    (20, 15, 2, 4),
+                    (30, 20, 3, 6),
+                    (40, 25, 4, 8),
+                    (50, 30, 5, 10),
+                });
+
+                // Make sure that the IsEmpty cache was correctly blown away and recalculated to "false",
+                // by making sure that we get a newly calculated value based on the newly inserted data
+                Assert.AreEqual(30, ws2.Cell("A1").Value);
+                Assert.IsFalse(ws1.IsEmpty());
+                Assert.AreEqual("D5", ws1.LastCellUsed()?.Address.ToString());
+            }
+        }
     }
 }

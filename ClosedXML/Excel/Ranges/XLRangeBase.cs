@@ -242,11 +242,12 @@ namespace ClosedXML.Excel
 
         IXLCell IXLRangeBase.LastCellUsed()
         {
-            return LastCellUsed(XLCellsUsedOptions.AllContents);
+            return LastCellUsed();
         }
+
         IXLCell IXLRangeBase.LastCellUsed(XLCellsUsedOptions options)
         {
-            return LastCellUsed(options, null);
+            return LastCellUsed(options);
         }
 
         IXLCell IXLRangeBase.LastCellUsed(Func<IXLCell, Boolean> predicate)
@@ -670,7 +671,7 @@ namespace ClosedXML.Excel
             return Worksheet.Cell(firstRow, firstColumn);
         }
 
-        internal XLCell LastCellUsed()
+        internal virtual XLCell LastCellUsed()
         {
             return LastCellUsed(XLCellsUsedOptions.AllContents, predicate: null);
         }

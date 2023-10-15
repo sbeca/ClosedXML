@@ -23,14 +23,12 @@ namespace ClosedXML.Excel
         private readonly XLRanges _selectedRanges;
 
         internal Int32 ZOrder = 1;
-        // _name can't actually be null but compiler complains without the ? so let's add it and just ! _name's usage elsewhere
-        private String? _name;
+        private String _name;
         internal Int32 _position;
 
         private Double _rowHeight;
         private Boolean _tabActive;
-        // _protection can't actually be null but compiler complains without the ? so let's add it and just ! _protection's usage elsewhere
-        private XLSheetProtection? _protection;
+        private XLSheetProtection _protection;
 
         // Cache some values that in some common use cases get read often but don't change often.
         // This can provide a massive 10x calculation speed improvement in some cases
@@ -457,7 +455,7 @@ namespace ClosedXML.Excel
             return Cell(row, column);
         }
 
-        IXLCell? IXLWorksheet.Cell(string cellAddressInRange)
+        IXLCell IXLWorksheet.Cell(string cellAddressInRange)
         {
             return Cell(cellAddressInRange) ?? throw new ArgumentException($"'{cellAddressInRange}' is not A1 address or workbook named range.");
         }
@@ -477,7 +475,7 @@ namespace ClosedXML.Excel
             return Range(rangeAddress);
         }
 
-        IXLRange? IXLWorksheet.Range(string rangeAddress)
+        IXLRange IXLWorksheet.Range(string rangeAddress)
         {
             return Range(rangeAddress) ?? throw new ArgumentException($"'{rangeAddress}' is not A1 address or named range.");
         }

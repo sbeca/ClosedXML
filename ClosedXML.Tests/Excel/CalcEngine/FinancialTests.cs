@@ -7,6 +7,24 @@ namespace ClosedXML.Tests.Excel.CalcEngine
     [TestFixture]
     public class FinancialTests
     {
+        [TestCase("FV(0.06/12,10,-200,-500,1)", 2581.4033740601362)]
+        [TestCase("FV(0.12/12,12,-1000)", 12682.503013196976)]
+        [TestCase("FV(0.11/12,35,-2000,,1)", 82846.24637190059)]
+        [TestCase("FV(0.06/12,12,-100,-1000,1)", 2301.4018303409139)]
+        public void Fv_ReferenceExamplesFromExcelDocumentations(string formula, double expectedResult)
+        {
+            var actual = (double)XLWorkbook.EvaluateExpr(formula);
+            Assert.AreEqual(expectedResult, actual, XLHelper.Epsilon);
+        }
+
+        [TestCase("IPMT(0.1/12,1,3*12,8000)", -66.666666666666686)]
+        [TestCase("IPMT(0.1,3,3,8000)", -292.4471299093658)]
+        public void Ipmt_ReferenceExamplesFromExcelDocumentations(string formula, double expectedResult)
+        {
+            var actual = (double)XLWorkbook.EvaluateExpr(formula);
+            Assert.AreEqual(expectedResult, actual, XLHelper.Epsilon);
+        }
+
         [TestCase("PMT(0.08/12,10,10000)", -1037.03208935915)]
         [TestCase("PMT(0.08/12,10,10000,0,1)", -1030.16432717797)]
         public void Pmt_ReferenceExamplesFromExcelDocumentations(string formula, double expectedResult)

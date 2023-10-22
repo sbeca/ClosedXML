@@ -32,32 +32,32 @@ namespace ClosedXML.Excel
 
     public partial class XLWorkbook
     {
-        private void Load(String file)
+        private void Load(String file, LoadOptions loadOptions)
         {
-            LoadSheets(file);
+            LoadSheets(file, loadOptions);
         }
 
-        private void Load(Stream stream)
+        private void Load(Stream stream, LoadOptions loadOptions)
         {
-            LoadSheets(stream);
+            LoadSheets(stream, loadOptions);
         }
 
-        private void LoadSheets(String fileName)
+        private void LoadSheets(String fileName, LoadOptions loadOptions)
         {
             using (var dSpreadsheet = SpreadsheetDocument.Open(fileName, false))
-                LoadSpreadsheetDocument(dSpreadsheet);
+                LoadSpreadsheetDocument(dSpreadsheet, loadOptions);
         }
 
-        private void LoadSheets(Stream stream)
+        private void LoadSheets(Stream stream, LoadOptions loadOptions)
         {
             using (var dSpreadsheet = SpreadsheetDocument.Open(stream, false))
-                LoadSpreadsheetDocument(dSpreadsheet);
+                LoadSpreadsheetDocument(dSpreadsheet, loadOptions);
         }
 
-        private void LoadSheetsFromTemplate(String fileName)
+        private void LoadSheetsFromTemplate(String fileName, LoadOptions loadOptions)
         {
             using (var dSpreadsheet = SpreadsheetDocument.CreateFromTemplate(fileName))
-                LoadSpreadsheetDocument(dSpreadsheet);
+                LoadSpreadsheetDocument(dSpreadsheet, loadOptions);
 
             // If we load a workbook as a template, we have to treat it as a "new" workbook.
             // The original file will NOT be copied into place before changes are applied
@@ -91,7 +91,7 @@ namespace ClosedXML.Excel
             }
         }
 
-        private void LoadSpreadsheetDocument(SpreadsheetDocument dSpreadsheet)
+        private void LoadSpreadsheetDocument(SpreadsheetDocument dSpreadsheet, LoadOptions loadOptions)
         {
             var context = new LoadContext();
             ShapeIdManager = new XLIdManager();
@@ -333,7 +333,7 @@ namespace ClosedXML.Excel
                         else if (reader.ElementType == typeof(SheetProtection))
                             LoadSheetProtection((SheetProtection)reader.LoadCurrentElement(), ws);
                         else if (reader.ElementType == typeof(DataValidations))
-                            LoadDataValidations((DataValidations)reader.LoadCurrentElement(), ws);
+                            LoadDataValidations((DataValidations)reader.LoadCurrentElement(), ws, loadOptions);
                         else if (reader.ElementType == typeof(ConditionalFormatting))
                             LoadConditionalFormatting((ConditionalFormatting)reader.LoadCurrentElement(), ws, differentialFormats, context);
                         else if (reader.ElementType == typeof(Hyperlinks))
@@ -1893,7 +1893,7 @@ namespace ClosedXML.Excel
             ws.Protection.AllowElement(XLSheetProtectionElements.SelectUnlockedCells, !OpenXmlHelper.GetBooleanValueAsBool(sp.SelectUnlockedCells, false));
         }
 
-        private static void LoadDataValidations(DataValidations dataValidations, XLWorksheet ws)
+        private static void LoadDataValidations(DataValidations dataValidations, XLWorksheet ws, LoadOptions loadOptions)
         {
             if (dataValidations == null) return;
 
@@ -1919,6 +1919,17 @@ namespace ClosedXML.Excel
                     if (dvs.Formula1 != null) dvt.MinValue = dvs.Formula1.Text;
                     if (dvs.Formula2 != null) dvt.MaxValue = dvs.Formula2.Text;
                 }
+            }
+
+            if (loadOptions.ConsolidateDataValidationRanges)
+            {
+                // Special case: when loading validations, we want to keep the first validation we find for a range
+                // and ignore any duplicates after that. This is different to the logic for editing a spreadsheet
+                // where newer validations should take precendence over older validations, for the same range.
+                // To handle this, we want to consolidate in reverse order after loading all the validations.
+                // See SavingTests.CorrectlyRetainRightValidationWhenThereAreDuplicateEntries
+                // for more details on how this might come up
+                ws.DataValidations.Consolidate(true);
             }
         }
 

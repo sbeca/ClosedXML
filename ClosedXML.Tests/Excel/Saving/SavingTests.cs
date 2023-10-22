@@ -842,6 +842,112 @@ namespace ClosedXML.Tests.Excel.Saving
         }
 
         [Test]
+        public void CorrectlyRetainRightValidationWhenThereAreDuplicateEntries()
+        {
+            // Excel, when merging multiple worksheets, can sometimes write out multiple list type
+            // data validation entries for the same cell, which might look something like this:
+            // 
+            // <dataValidations count="2">
+            //     <dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1"
+            //         sqref="A1" xr:uid="{05A1FD9B-B440-4950-AC35-C8655850CDE1}">
+            //         <formula1>"tonne,ton"</formula1>
+            //     </dataValidation>
+            //     <dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1"
+            //         sqref="A1" xr:uid="{05A1FD9B-B440-4950-AC35-C8655850CDE2}">
+            //         <formula1>"$/kgMS,R/kgMS,$/kgMS"</formula1>
+            //     </dataValidation>
+            // </dataValidations>
+            //
+            // Excel doesn't complain about this and just uses the first entry and ignores any
+            // subsequent entries for the same cell. This test assures that ClosedXML matches
+            // the same behaviour of Excel and only uses/retains the first entry.
+
+            var tempFilename = $"test-{Guid.NewGuid()}.xlsx";
+            try
+            {
+                var path = TestHelper.GetResourcePath(@"TryToLoad\DuplicateDataValidations1.xlsx");
+                using var stream = TestHelper.GetStreamFromResource(path);
+
+                // First, make sure that reading from the original file gets us the correct validation
+                using var originalWorkbook = new XLWorkbook(stream);
+                var originalWorksheet = originalWorkbook.Worksheet("Sheet1");
+
+                var originalA1 = originalWorksheet.Cell("A1");
+                Assert.AreEqual(XLAllowedValues.List, originalA1.GetDataValidation().AllowedValues);
+                Assert.AreEqual("\"tonne,ton\"", originalA1.GetDataValidation().Value);
+                Assert.AreEqual("ton", originalA1.Value);
+
+                // Second, save and then reload the spreadsheet and check that we still get the correct validation
+                Assert.DoesNotThrow(() => originalWorkbook.SaveAs(tempFilename));
+
+                using var tempWorkbook = new XLWorkbook(tempFilename);
+                var tempWorksheet = tempWorkbook.Worksheet("Sheet1");
+
+                var tempA1 = tempWorksheet.Cell("A1");
+                Assert.AreEqual(XLAllowedValues.List, tempA1.GetDataValidation().AllowedValues);
+                Assert.AreEqual("\"tonne,ton\"", tempA1.GetDataValidation().Value);
+                Assert.AreEqual("ton", tempA1.Value);
+            }
+            finally
+            {
+                File.Delete(tempFilename);
+            }
+
+            // We also want to test another setup that Excel accepts that is slightly different:
+            // 
+            // <dataValidations count="2">
+            //     <dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1"
+            //         sqref="A1" xr:uid="{05A1FD9B-B440-4950-AC35-C8655850CDE1}">
+            //         <formula1>"tonne,ton"</formula1>
+            //     </dataValidation>
+            //     <dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1"
+            //         sqref="A1:A2" xr:uid="{05A1FD9B-B440-4950-AC35-C8655850CDE2}">
+            //         <formula1>"$/kgMS,R/kgMS,$/kgMS"</formula1>
+            //     </dataValidation>
+            // </dataValidations>
+
+            try
+            {
+                var path = TestHelper.GetResourcePath(@"TryToLoad\DuplicateDataValidations2.xlsx");
+                using var stream = TestHelper.GetStreamFromResource(path);
+
+                // First, make sure that reading from the original file gets us the correct validation
+                using var originalWorkbook = new XLWorkbook(stream);
+                var originalWorksheet = originalWorkbook.Worksheet("Sheet1");
+
+                var originalA1 = originalWorksheet.Cell("A1");
+                Assert.AreEqual(XLAllowedValues.List, originalA1.GetDataValidation().AllowedValues);
+                Assert.AreEqual("\"tonne,ton\"", originalA1.GetDataValidation().Value);
+                Assert.AreEqual("ton", originalA1.Value);
+
+                var originalA2 = originalWorksheet.Cell("A2");
+                Assert.AreEqual(XLAllowedValues.List, originalA2.GetDataValidation().AllowedValues);
+                Assert.AreEqual("\"$/kgMS,R/kgMS,$/kgMS\"", originalA2.GetDataValidation().Value);
+                Assert.AreEqual("R/kgMS", originalA2.Value);
+
+                // Second, save and then reload the spreadsheet and check that we still get the correct validation
+                Assert.DoesNotThrow(() => originalWorkbook.SaveAs(tempFilename));
+
+                using var tempWorkbook = new XLWorkbook(tempFilename);
+                var tempWorksheet = tempWorkbook.Worksheet("Sheet1");
+
+                var tempA1 = tempWorksheet.Cell("A1");
+                Assert.AreEqual(XLAllowedValues.List, tempA1.GetDataValidation().AllowedValues);
+                Assert.AreEqual("\"tonne,ton\"", tempA1.GetDataValidation().Value);
+                Assert.AreEqual("ton", tempA1.Value);
+
+                var tempA2 = tempWorksheet.Cell("A2");
+                Assert.AreEqual(XLAllowedValues.List, tempA2.GetDataValidation().AllowedValues);
+                Assert.AreEqual("\"$/kgMS,R/kgMS,$/kgMS\"", tempA2.GetDataValidation().Value);
+                Assert.AreEqual("R/kgMS", tempA2.Value);
+            }
+            finally
+            {
+                File.Delete(tempFilename);
+            }
+        }
+
+        [Test]
         public void FormControlsArePreserved()
         {
             // The sheet contains three form controls: two radio buttons and group box.

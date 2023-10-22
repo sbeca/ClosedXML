@@ -147,5 +147,41 @@ namespace ClosedXML.Tests.Excel.DataValidations
                 Assert.False(ws.Cell("D1").HasDataValidation);
             }
         }
+
+        [Test]
+        public void DuplicateDataValidationsShouldOverwrite()
+        {
+            using (var wb = new XLWorkbook())
+            {
+                var ws = wb.AddWorksheet();
+                var dv1 = ws.Range("A1:A1").CreateDataValidation();
+                dv1.AllowedValues = XLAllowedValues.List;
+                dv1.MinValue = "\"Value1,Value2\"";
+                var dv2 = ws.Range("B1:B1").CreateDataValidation();
+                dv2.AllowedValues = XLAllowedValues.List;
+                dv2.MinValue = "\"Value3,Value4\"";
+
+                (ws.DataValidations as XLDataValidations).Consolidate();
+                Assert.AreEqual(2, ws.DataValidations.Count());
+                Assert.AreEqual("\"Value1,Value2\"", ws.Cell("A1").GetDataValidation().MinValue);
+
+                dv2.AddRange(ws.Range("A1:A1"));
+
+                (ws.DataValidations as XLDataValidations).Consolidate();
+                Assert.AreEqual(1, ws.DataValidations.Count());
+                Assert.AreEqual("\"Value3,Value4\"", ws.Cell("A1").GetDataValidation().MinValue);
+
+                dv2.RemoveRange(ws.Range("B1:B1"));
+
+                (ws.DataValidations as XLDataValidations).Consolidate();
+                Assert.AreEqual(1, ws.DataValidations.Count());
+                Assert.AreEqual("\"Value3,Value4\"", ws.Cell("A1").GetDataValidation().MinValue);
+
+                foreach (var dv in ws.DataValidations)
+                {
+                    Assert.AreNotEqual(0, dv.Ranges.Count());
+                }
+            }
+        }
     }
 }

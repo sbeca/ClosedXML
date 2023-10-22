@@ -9,7 +9,6 @@ namespace ClosedXML.Tests.Excel.DataValidations
     [TestFixture]
     public class DataValidationTests
     {
-
         [Test]
         public void Validation_Reference_List_Values_From_Separate_Sheet()
         {

@@ -13,6 +13,11 @@ namespace ClosedXML.Excel
         private Point _dpi = new(96, 96);
 
         /// <summary>
+        /// Should data validation ranges be consolidated during load? Default value is <c>true</c>.
+        /// </summary>
+        public Boolean ConsolidateDataValidationRanges { get; set; } = true;
+
+        /// <summary>
         /// A graphics engine that will be used for workbooks without explicitly set engine.
         /// </summary>
         public static IXLGraphicEngine? DefaultGraphicEngine { internal get; set; }

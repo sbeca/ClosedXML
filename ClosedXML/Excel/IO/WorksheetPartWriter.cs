@@ -856,8 +856,15 @@ namespace ClosedXML.Excel.IO
                 {
                     var sequence = dv.Ranges.Aggregate(String.Empty, (current, r) => current + (r.RangeAddress + " "));
 
-                    if (sequence.Length > 0)
-                        sequence = sequence.Substring(0, sequence.Length - 1);
+                    if (sequence.Length == 0)
+                    {
+                        // If we don't have any ranges for this data validation, then we shouldn't save it,
+                        // as saving it will cause Excel to complain about problems with the data and ask
+                        // users if they want to try and recover data
+                        continue;
+                    }
+
+                    sequence = sequence.Substring(0, sequence.Length - 1);
 
                     bool hasReferenceToAnotherSheet = false;
                     if (XLHelper.IsValidRangeAddress(dv.MinValue) && dv.MinValue.Contains('!'))

@@ -164,7 +164,7 @@ namespace ClosedXML.Excel
 
         #endregion IXLDataValidations Members
 
-        public void Consolidate()
+        public void Consolidate(bool consolidateInReverse = false)
         {
             Func<IXLDataValidation, IXLDataValidation, bool> areEqual = (dv1, dv2) =>
             {
@@ -188,6 +188,11 @@ namespace ClosedXML.Excel
             var rules = _dataValidations.ToList();
             rules.ForEach(Delete);
 
+            if (consolidateInReverse)
+            {
+                rules.Reverse();
+            }
+
             while (rules.Any())
             {
                 var similarRules = rules.Where(r => areEqual(rules.First(), r)).ToList();
@@ -203,6 +208,11 @@ namespace ClosedXML.Excel
                 consRule.ClearRanges();
                 consRule.AddRanges(consolidatedRanges);
                 Add(consRule);
+            }
+
+            if (consolidateInReverse)
+            {
+                _dataValidations.Reverse();
             }
         }
 
@@ -229,13 +239,9 @@ namespace ClosedXML.Excel
 
         private void ProcessRangeRemoved(IXLRange range)
         {
-            var entry = _dataValidationIndex.GetIntersectedRanges((XLRangeAddress)range.RangeAddress)
-                .SingleOrDefault(e => Equals(e.RangeAddress, range.RangeAddress));
-
-            if (entry != null)
-            {
-                _dataValidationIndex.Remove(entry.RangeAddress);
-            }
+            var entries = _dataValidationIndex.GetIntersectedRanges((XLRangeAddress)range.RangeAddress)
+                .Where(e => Equals(e.RangeAddress, range.RangeAddress));
+            entries.ToArray().ForEach(entry => _dataValidationIndex.Remove(entry.RangeAddress));
         }
 
         private void SplitExistingRanges(IXLRangeAddress rangeAddress)
@@ -258,7 +264,13 @@ namespace ClosedXML.Excel
                 _skipSplittingExistingRanges = false;
             }
 
-            //TODO Remove empty data validations
+            for (int i = _dataValidations.Count - 1; i >= 0; i--)
+            {
+                if (_dataValidations[i].Ranges.Count() == 0)
+                {
+                    Delete(_dataValidations[i]);
+                }
+            }
         }
 
         /// <summary>

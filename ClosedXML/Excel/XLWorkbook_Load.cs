@@ -1911,6 +1911,14 @@ namespace ClosedXML.Excel
                     if (dvs.Formula2 != null) dvt.MaxValue = dvs.Formula2.Text;
                 }
             }
+
+            // Special case: when loading validations, we want to keep the first validation we find for a range
+            // and ignore any duplicates after that. This is different to the logic for editing a spreadsheet
+            // where newer validations should take precendence over older validations, for the same range.
+            // To handle this, we want to consolidate in reverse order after loading all the validations.
+            // See SavingTests.CorrectlyRetainRightValidationWhenThereAreDuplicateEntries
+            // for more details on how this might come up
+            ws.DataValidations.Consolidate(true);
         }
 
         /// <summary>

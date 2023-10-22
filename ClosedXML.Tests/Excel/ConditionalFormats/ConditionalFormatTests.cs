@@ -53,13 +53,20 @@ namespace ClosedXML.Tests.Excel.ConditionalFormats
             }
         }
 
-        [TestCase(true, 1)]
-        [TestCase(false, 2)]
-        public void SaveOptionAffectsConsolidationDataValidationRanges(bool consolidateDataValidationRanges, int expectedCount)
+        [TestCase(false, false, 2)]
+        [TestCase(false, true, 1)]
+        [TestCase(true, false, 1)]
+        [TestCase(true, true, 1)]
+        public void SaveOptionAffectsConsolidationDataValidationRanges(bool consolidateConditionalFormatRangesOnLoad, bool consolidateDataValidationRangesOnSave, int expectedCount)
         {
-            var options = new SaveOptions
+            var loadOptions = new LoadOptions
             {
-                ConsolidateDataValidationRanges = consolidateDataValidationRanges
+                ConsolidateDataValidationRanges = consolidateConditionalFormatRangesOnLoad
+            };
+
+            var saveOptions = new SaveOptions
+            {
+                ConsolidateDataValidationRanges = consolidateDataValidationRangesOnSave
             };
 
             var wb = new XLWorkbook();
@@ -69,8 +76,8 @@ namespace ClosedXML.Tests.Excel.ConditionalFormats
 
             using (var ms = new MemoryStream())
             {
-                wb.SaveAs(ms, options);
-                var wb_saved = new XLWorkbook(ms);
+                wb.SaveAs(ms, saveOptions);
+                var wb_saved = new XLWorkbook(ms, loadOptions);
                 Assert.AreEqual(expectedCount, wb_saved.Worksheet("Sheet").DataValidations.Count());
             }
         }

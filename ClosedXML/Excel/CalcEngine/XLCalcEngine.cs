@@ -381,7 +381,7 @@ namespace ClosedXML.Excel.CalcEngine
                     catch (GettingDataException ex)
                     {
                         // We're missing cell data so let's go and calc it
-                        Recalculate(ctx.Workbook, ctx.RecalculateSheetId, ex.Point);
+                        Recalculate(ctx.Workbook, ctx.RecalculateSheetId, false, ex.Point);
                     }
                 }
             }

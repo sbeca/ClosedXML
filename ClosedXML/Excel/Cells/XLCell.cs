@@ -562,7 +562,7 @@ namespace ClosedXML.Excel
             }
 
             var wb = Worksheet.Workbook;
-            wb.CalcEngine.Recalculate(wb, null, new XLBookPoint(Worksheet, SheetPoint));
+            wb.CalcEngine.Recalculate(wb, null, false, new XLBookPoint(Worksheet, SheetPoint));
         }
 
         /// <summary>

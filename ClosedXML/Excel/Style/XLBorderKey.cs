@@ -4,7 +4,7 @@ using System;
 
 namespace ClosedXML.Excel
 {
-    internal struct XLBorderKey : IEquatable<XLBorderKey>
+    public struct XLBorderKey : IEquatable<XLBorderKey>
     {
         public XLBorderStyleValues LeftBorder { get; set; }
 

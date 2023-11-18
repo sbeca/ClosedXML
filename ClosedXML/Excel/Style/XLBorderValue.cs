@@ -4,7 +4,7 @@ using ClosedXML.Excel.Caching;
 
 namespace ClosedXML.Excel
 {
-    internal class XLBorderValue
+    public class XLBorderValue
     {
         private static readonly XLBorderRepository Repository = new XLBorderRepository(key => new XLBorderValue(key));
 
@@ -29,7 +29,7 @@ namespace ClosedXML.Excel
             TopBorderColor = XLColor.Black.Key
         };
 
-        internal static readonly XLBorderValue Default = FromKey(ref DefaultKey);
+        public static readonly XLBorderValue Default = FromKey(ref DefaultKey);
 
         public XLBorderKey Key { get; private set; }
 

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace ClosedXML.Excel
 {
-    internal sealed class XLFontValue
+    public sealed class XLFontValue
     {
         private static readonly XLFontRepository Repository = new XLFontRepository(key => new XLFontValue(key));
 
@@ -28,7 +28,7 @@ namespace ClosedXML.Excel
             FontCharSet = XLFontCharSet.Default,
             FontScheme = XLFontScheme.None
         };
-        internal static readonly XLFontValue Default = FromKey(ref DefaultKey);
+        public static readonly XLFontValue Default = FromKey(ref DefaultKey);
 
         public XLFontKey Key { get; private set; }
 

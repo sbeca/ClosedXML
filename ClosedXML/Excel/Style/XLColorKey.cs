@@ -4,7 +4,7 @@ using System;
 
 namespace ClosedXML.Excel
 {
-    internal struct XLColorKey : IEquatable<XLColorKey>
+    public struct XLColorKey : IEquatable<XLColorKey>
     {
         public XLColorType ColorType { get; set; }
 

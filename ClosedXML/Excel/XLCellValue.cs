@@ -256,7 +256,7 @@ namespace ClosedXML.Excel
         /// <param name="text">Text to parse into a value.</param>
         /// <param name="culture">Culture used to parse numbers.</param>
         /// <returns>Parsed value.</returns>
-        internal static XLCellValue FromText(string text, CultureInfo culture)
+        public static XLCellValue FromText(string text, CultureInfo culture)
         {
             // AutoFilter custom filter operand can be stored as `1 1/2` and Excel correctly
             // interprets it as a `1.5`. Same for 2015-01-01, therefore use `TextToNumber` that

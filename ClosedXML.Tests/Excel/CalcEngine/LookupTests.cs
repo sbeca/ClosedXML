@@ -580,7 +580,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [Test]
-        public void Xlookup()
+        public void Xlookup_Vertical()
         {
             // Range lookup with only exact match (the default)
             Assert.AreEqual("Central", ws.Evaluate("=XLOOKUP(3,Data!$B$2:$B$71,Data!$D$2:$D$71,,0)"));
@@ -621,6 +621,13 @@ namespace ClosedXML.Tests.Excel.CalcEngine
             Assert.AreEqual(250, ws.Evaluate("=XLOOKUP(14.4,Data!$B$2:$B$71,Data!$I$2:$I$71,,1)"));
 
             Assert.AreEqual(250, ws.Evaluate("=XLOOKUP(14.5,Data!$B$2:$B$71,Data!$I$2:$I$71,,1)"));
+        }
+
+        [Test]
+        public void Xlookup_Horizontal()
+        {
+            // Range lookup with only exact match (the default)
+            Assert.AreEqual(179.64, ws.Evaluate(@"=XLOOKUP(""Total"",Data!$B$2:$I$2,Data!$B$5:$I$5,,0)"));
         }
 
         [Test]

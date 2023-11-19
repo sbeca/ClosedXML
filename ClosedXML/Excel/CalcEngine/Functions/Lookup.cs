@@ -544,14 +544,29 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
             if (matchModeInt == 0) // 0 - Try to find exact match. If none found, return #N/A
             {
-                for (var rowIndex = 0; rowIndex < lookupArray.Height; rowIndex++)
+                if (lookupArray.Height > lookupArray.Width)
                 {
-                    var currentValue = lookupArray[rowIndex, 0];
+                    for (var rowIndex = 0; rowIndex < lookupArray.Height; rowIndex++)
+                    {
+                        var currentValue = lookupArray[rowIndex, 0];
 
-                    // Because lookup value can't be an error, it doesn't matter that sort treats all errors as equal.
-                    var comparison = ScalarValueComparer.SortIgnoreCase.Compare(currentValue, lookupValue);
-                    if (comparison == 0)
-                        return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(rowIndex + 1, 1).AsRange().RangeAddress) : returnArray[rowIndex, 0].ToAnyValue());
+                        // Because lookup value can't be an error, it doesn't matter that sort treats all errors as equal.
+                        var comparison = ScalarValueComparer.SortIgnoreCase.Compare(currentValue, lookupValue);
+                        if (comparison == 0)
+                            return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(rowIndex + 1, 1).AsRange().RangeAddress) : returnArray[rowIndex, 0].ToAnyValue());
+                    }
+                }
+                else
+                {
+                    for (var columnIndex = 0; columnIndex < lookupArray.Width; columnIndex++)
+                    {
+                        var currentValue = lookupArray[0, columnIndex];
+
+                        // Because lookup value can't be an error, it doesn't matter that sort treats all errors as equal.
+                        var comparison = ScalarValueComparer.SortIgnoreCase.Compare(currentValue, lookupValue);
+                        if (comparison == 0)
+                            return (returnReferenceRange != null ? new Reference((XLRangeAddress)returnReferenceRange.Cell(1, columnIndex + 1).AsRange().RangeAddress) : returnArray[0, columnIndex].ToAnyValue());
+                    }
                 }
 
                 return ifNotFoundValue.IsBlank ? XLError.NoValueAvailable : ifNotFoundValue.ToAnyValue();

@@ -507,7 +507,7 @@ namespace ClosedXML.Excel.CalcEngine.Functions
 
                 var returnArraySingle = returnReference.Areas.Single();
                 returnArray = new ReferenceArray(returnArraySingle, ctx);
-                returnReferenceRange = ctx.Worksheet.Range(returnArraySingle);
+                returnReferenceRange = (returnArraySingle.Worksheet ?? ctx.Worksheet).Range(returnArraySingle);
             }
 
             // The lengths of both ranges must be exactly the same

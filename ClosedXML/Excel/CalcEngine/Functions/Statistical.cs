@@ -102,7 +102,15 @@ namespace ClosedXML.Excel.CalcEngine
 
         private static object Average(List<Expression> p)
         {
-            return GetTally(p, true).Average();
+            try
+            {
+                return GetTally(p, true).Average();
+            }
+            catch (ApplicationException)
+            {
+                // ApplicationException is thrown when no values are found to average, which leads to a #DIV/0! error
+                return XLError.DivisionByZero;
+            }
         }
 
         private static object AverageA(List<Expression> p)
@@ -328,7 +336,15 @@ namespace ClosedXML.Excel.CalcEngine
 
         private static object Median(List<Expression> p)
         {
-            return GetTally(p, false).Median();
+            try
+            {
+                return GetTally(p, false).Median();
+            }
+            catch (ApplicationException)
+            {
+                // ApplicationException is thrown when no values are found to calculate the median of, which leads to a #NUM! error
+                return XLError.NumberInvalid;
+            }
         }
 
         private static object Min(List<Expression> p)

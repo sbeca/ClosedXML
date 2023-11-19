@@ -25,7 +25,25 @@ namespace ClosedXML.Tests.Excel.CalcEngine
             value = (double)ws.Evaluate("AVERAGE(G3:G45)");
             Assert.AreEqual(49.3255814, value, tolerance);
 
-            Assert.That(() => ws.Evaluate("AVERAGE(D3:D45)"), Throws.TypeOf<ApplicationException>());
+            // Selection of text-only cells
+            Assert.AreEqual(XLError.DivisionByZero, ws.Evaluate("AVERAGE(D3:D45)"));
+        }
+
+        [Test]
+        [Ignore("Need to fix this up")]
+        public void AverageA()
+        {
+            double value;
+            value = (double)workbook.Evaluate("AVERAGEA(-27.5,93.93,64.51,-70.56)");
+            Assert.AreEqual(15.095, value, tolerance);
+
+            var ws = workbook.Worksheets.First();
+            value = (double)ws.Evaluate("AVERAGEA(G3:G45)");
+            Assert.AreEqual(49.3255814, value, tolerance);
+
+            // Selection of text-only cells
+            value = (double)ws.Evaluate("AVERAGEA(D3:D45)");
+            Assert.AreEqual(0, value, tolerance);
         }
 
         [Test]
@@ -336,16 +354,16 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [Test]
-        public void Median_CellRangeOfNonNumericValues_ThrowsApplicationException()
+        public void Median_CellRangeOfNonNumericValues_ReturnsNumberInvalidError()
         {
             //Arrange
             var ws = workbook.Worksheets.First();
 
-            //Act - Assert
-            Assert.Throws<ApplicationException>(() =>
-            {
-                ws.Evaluate("AVERAGE(D3:D45)");
-            });
+            //Act
+            var value = ws.Evaluate("MEDIAN(D3:D45)");
+
+            //Assert
+            Assert.AreEqual(XLError.NumberInvalid, value);
         }
 
         [Test]

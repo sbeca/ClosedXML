@@ -36,12 +36,12 @@ namespace ClosedXML.Excel
         /// </summary>
         internal string? Name { get; }
 
-        public bool Equals(XLPivotSourceReference other)
+        public bool Equals(XLPivotSourceReference? other)
         {
             if (ReferenceEquals(this, other))
                 return true;
 
-            return Nullable.Equals(Area, other.Area) && XLHelper.NameComparer.Equals(Name, other.Name);
+            return Nullable.Equals(Area, other?.Area) && XLHelper.NameComparer.Equals(Name, other?.Name);
         }
 
         public override bool Equals(object? obj)

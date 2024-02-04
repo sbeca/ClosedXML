@@ -235,7 +235,7 @@ namespace ClosedXML.Excel
             FontScheme = value; return this;
         }
 
-        public override bool Equals(object obj) => Equals(obj as XLRichString);
+        public override bool Equals(object? obj) => Equals(obj as XLRichString);
 
         public Boolean Equals(IXLRichString? other) => Equals(other as XLRichString);
 

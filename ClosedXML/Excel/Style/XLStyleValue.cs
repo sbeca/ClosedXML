@@ -55,7 +55,7 @@ namespace ClosedXML.Excel
 
         internal XLProtectionValue Protection { get; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
                 return true;

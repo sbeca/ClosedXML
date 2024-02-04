@@ -62,7 +62,7 @@ namespace ClosedXML.Excel
         /// </summary>
         public int BottomRow => LastPoint.Row;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is XLSheetRange range && Equals(range);
         }

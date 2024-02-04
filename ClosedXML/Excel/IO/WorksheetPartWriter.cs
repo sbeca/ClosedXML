@@ -223,7 +223,7 @@ namespace ClosedXML.Excel.IO
             pane.VerticalSplit = ySplit;
 
             // When panes are frozen, which part should move.
-            PaneValues split;
+            PaneValues? split = null;
             if (ySplit == 0 && hSplit == 0)
                 split = PaneValues.TopLeft;
             else if (ySplit == 0 && hSplit != 0)

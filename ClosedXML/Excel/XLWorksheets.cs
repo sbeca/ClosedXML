@@ -77,7 +77,7 @@ namespace ClosedXML.Excel
         {
             sheetName = sheetName.UnescapeSheetName();
 
-            if (_worksheets.TryGetValue(sheetName, out XLWorksheet w))
+            if (_worksheets.TryGetValue(sheetName, out XLWorksheet? w))
                 return w;
 
             throw new ArgumentException("There isn't a worksheet named '" + sheetName + "'.");
@@ -207,7 +207,7 @@ namespace ClosedXML.Excel
 
         public void Rename(String oldSheetName, String newSheetName)
         {
-            if (String.IsNullOrWhiteSpace(oldSheetName) || !_worksheets.TryGetValue(oldSheetName, out XLWorksheet ws)) return;
+            if (String.IsNullOrWhiteSpace(oldSheetName) || !_worksheets.TryGetValue(oldSheetName, out XLWorksheet? ws)) return;
 
             if (!oldSheetName.Equals(newSheetName, StringComparison.OrdinalIgnoreCase)
                 && _worksheets.ContainsKey(newSheetName))

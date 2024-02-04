@@ -26,7 +26,7 @@ namespace ClosedXML.Excel
         /// </summary>
         public readonly Int32 Column;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is XLSheetPoint point && Equals(point);
         }

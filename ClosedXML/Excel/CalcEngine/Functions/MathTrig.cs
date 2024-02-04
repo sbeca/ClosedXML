@@ -920,6 +920,11 @@ namespace ClosedXML.Excel.CalcEngine
                 p[0] as XObjectExpression :
                 p[2] as XObjectExpression;
 
+            if (sumRange is null)
+            {
+                return calculationErrorType;
+            }
+
             // the criteria to evaluate
             var criteria = p[1].Evaluate();
 

@@ -119,15 +119,15 @@ namespace ClosedXML.Excel
 
         #region Overridden
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return Equals((IXLProtection)obj);
+            return Equals(obj as IXLProtection);
         }
 
-        public bool Equals(IXLProtection other)
+        public bool Equals(IXLProtection? other)
         {
             var otherP = other as XLProtection;
-            if (otherP == null)
+            if (otherP is null)
                 return false;
 
             return Key == otherP.Key;

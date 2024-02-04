@@ -126,7 +126,7 @@ namespace ClosedXML.Excel
             return NumberFormatId + "-" + Format;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as IXLNumberFormatBase);
         }

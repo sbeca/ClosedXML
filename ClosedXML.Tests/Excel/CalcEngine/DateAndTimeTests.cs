@@ -125,10 +125,20 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("8/22/2008", ExpectedResult = 39682)]
         [TestCase("2/1/2006", ExpectedResult = 38749)]
         [TestCase("2006-2-1", ExpectedResult = 38749)]
+        [TestCase("22-MAY-2011", ExpectedResult = 40685)]
         [TestCase("February 1, 2006 17:45", ExpectedResult = 38749)]
         public double DateValue_returns_truncated_serial_date_extracted_from_text(string date)
         {
             return (double)XLWorkbook.EvaluateExprCurrent($"DATEVALUE(\"{date}\")");
+        }
+
+        [Test]
+        public void DateValue_returns_truncated_serial_date_using_current_year()
+        {
+            // If year isn't provided in string, it should parse as "current year"
+            double actual = (double)XLWorkbook.EvaluateExpr("DATEVALUE(\"5-JUL\")");
+            double expected = new DateTime(DateTime.Now.Year, 7, 5).ToOADate();
+            Assert.AreEqual(expected, actual);
         }
 
         [TestCase("\"100\"")]
@@ -154,6 +164,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [TestCase(0, ExpectedResult = 0)]
+        [TestCase(0.5, ExpectedResult = 0)]
         [TestCase(1, ExpectedResult = 1)]
         [TestCase(31, ExpectedResult = 31)]
         [TestCase(32, ExpectedResult = 1)]
@@ -165,6 +176,26 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         public double Day_returns_day_of_a_month_for_serial_culture(double serialDate)
         {
             return XLWorkbook.EvaluateExpr($"DAY({serialDate})").GetNumber();
+        }
+
+        [TestCase("\"8/22/2008\"", ExpectedResult = 22)]
+        [TestCase("\"1/2/2006 10:45 AM\"", ExpectedResult = 2)]
+        [TestCase("\"367\"", ExpectedResult = 1)]
+        [TestCase("IF(TRUE,)", ExpectedResult = 0)] // Blank
+        [TestCase("TRUE", ExpectedResult = 1)]
+        [TestCase("FALSE", ExpectedResult = 0)]
+        public double Day_accepts_non_number_values(string value)
+        {
+            return XLWorkbook.EvaluateExpr($"DAY({value})").GetNumber();
+        }
+
+        [Test]
+        [Ignore("Excel accepts this but ClosedXML does not yet")]
+        public void Day_accepts_missing_year_and_substitutes_current_year()
+        {
+            // Test providing just month and day, which should fill the year as "current year"
+            double actual = XLWorkbook.EvaluateExpr("DAY(\"8/22\")").GetNumber();
+            Assert.AreEqual(22, actual);
         }
 
         [Test]
@@ -351,6 +382,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("0.75", ExpectedResult = 18)]
         [TestCase("1", ExpectedResult = 0)]
         [TestCase("1.75", ExpectedResult = 18)]
+        [TestCase("\"1.75\"", ExpectedResult = 18)] // Test string in addition to number in TestCase before
         [TestCase("\"7/18/2011 7:45\"", ExpectedResult = 7)]
         [TestCase("\"4/21/2012\"", ExpectedResult = 0)]
         [TestCase("\"12:00:00\"", ExpectedResult = 12)]
@@ -362,6 +394,9 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("\"October 22, 2001 10:53\"", ExpectedResult = 10)]
         [TestCase("\"10:53:12 pm\"", ExpectedResult = 22)]
         [TestCase("\"22:53:12\"", ExpectedResult = 22)]
+        [TestCase("IF(TRUE,)", ExpectedResult = 0)] // Blank
+        [TestCase("TRUE", ExpectedResult = 0)]
+        [TestCase("FALSE", ExpectedResult = 0)]
         public double Hour_returns_hour_of_serial_date(string dateArg)
         {
             return XLWorkbook.EvaluateExprCurrent($"HOUR({dateArg})").GetNumber();
@@ -383,8 +418,12 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("0.69", ExpectedResult = 33)]
         [TestCase("0.85", ExpectedResult = 24)]
         [TestCase("10.85", ExpectedResult = 24)]
+        [TestCase("\"10.85\"", ExpectedResult = 24)] // Test string in addition to number in TestCase before
         [TestCase("\"14:47:20\"", ExpectedResult = 47)]
         [TestCase("\"8/22/2008 3:30 AM\"", ExpectedResult = 30)]
+        [TestCase("IF(TRUE,)", ExpectedResult = 0)] // Blank
+        [TestCase("TRUE", ExpectedResult = 0)]
+        [TestCase("FALSE", ExpectedResult = 0)]
         public double Minute_returns_minute_of_serial_date(string dateArg)
         {
             return XLWorkbook.EvaluateExprCurrent($"MINUTE({dateArg})").GetNumber();
@@ -414,9 +453,22 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("45596", ExpectedResult = 10)]
         [TestCase("45596.9", ExpectedResult = 10)]
         [TestCase("45597", ExpectedResult = 11)]
+        [TestCase("\"45597\"", ExpectedResult = 11)] // Test string in addition to number in TestCase before
+        [TestCase("IF(TRUE,)", ExpectedResult = 1)] // Blank
+        [TestCase("TRUE", ExpectedResult = 1)]
+        [TestCase("FALSE", ExpectedResult = 1)]
         public double Month_returns_month_of_serial_date(object argument)
         {
             return XLWorkbook.EvaluateExprCurrent($"MONTH({argument})").GetNumber();
+        }
+
+        [Test]
+        [Ignore("Excel accepts this but ClosedXML does not yet")]
+        public void Month_accepts_missing_year_and_substitutes_current_year()
+        {
+            // Test providing just month and day, which should fill the year as "current year"
+            double actual = XLWorkbook.EvaluateExpr("MONTH(\"8/22\")").GetNumber();
+            Assert.AreEqual(8, actual);
         }
 
         [Test]
@@ -551,8 +603,20 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         }
 
         [TestCase("0", ExpectedResult = 0)]
+        [TestCase("0.5", ExpectedResult = 0)]
+        [TestCase("1", ExpectedResult = 0)]
+        [TestCase("366", ExpectedResult = 0)]
+        [TestCase("367", ExpectedResult = 0)]
+        [TestCase("\"367\"", ExpectedResult = 0)] // Test string in addition to number in TestCase before
+        [TestCase("\"8/22/2008\"", ExpectedResult = 0)]
+        [TestCase("\"1/2/2006 10:45 AM\"", ExpectedResult = 0)]
+        [TestCase("\"8/22/2008 3:30:4 PM\"", ExpectedResult = 4, Ignore = "We don't parse seconds")]
+        [TestCase("\"8/22/2008 3:30:23 PM\"", ExpectedResult = 23, Ignore = "We don't parse seconds")]
         [TestCase("\"3:30:45\"", ExpectedResult = 45)]
-        public double Second_returns_minute_of_serial_date(string dateArg)
+        [TestCase("IF(TRUE,)", ExpectedResult = 0)] // Blank
+        [TestCase("TRUE", ExpectedResult = 0)]
+        [TestCase("FALSE", ExpectedResult = 0)]
+        public double Second_returns_second_of_serial_date(string dateArg)
         {
             return XLWorkbook.EvaluateExprCurrent($"SECOND({dateArg})").GetNumber();
         }
@@ -907,6 +971,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("60", 1900)]
         [TestCase("366", 1900)]
         [TestCase("367", 1901)]
+        [TestCase("\"367\"", 1901)] // Test string in addition to number in TestCase before
         [TestCase("DATE(9999,12,31)+0.9", 9999)]
         [TestCase("DATE(9999,12,31)+1", XLError.NumberInvalid)]
         [TestCase("-1", XLError.NumberInvalid)]
@@ -915,6 +980,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("TRUE", 1900)]
         [TestCase("FALSE", 1900)]
         [TestCase("#DIV/0!", XLError.DivisionByZero)]
+        [TestCase("\"\"", XLError.IncompatibleValue)]
         public void Year(string value, object expected)
         {
             var actual = XLWorkbook.EvaluateExpr($"YEAR({value})");
@@ -930,6 +996,15 @@ namespace ClosedXML.Tests.Excel.CalcEngine
             ws.Cell("A2").FormulaA1 = "YEAR(A1)";
             var valueA2 = ws.Cell("A2").Value;
             Assert.AreEqual(1900, valueA2);
+        }
+
+        [Test]
+        [Ignore("Excel accepts this but ClosedXML does not yet")]
+        public void Year_accepts_missing_year_and_substitutes_current_year()
+        {
+            // Test providing just month and day, which should fill the year as "current year"
+            double actual = XLWorkbook.EvaluateExpr("YEAR(\"8/22\")").GetNumber();
+            Assert.AreEqual(DateTime.Now.Year, actual);
         }
 
         [DefaultFloatingPointTolerance(XLHelper.Epsilon)]

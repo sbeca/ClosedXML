@@ -53,6 +53,9 @@ namespace ClosedXML.Tests.Excel.CalcEngine
             ws.Cell("E3").Value = false;
             Assert.AreEqual(5, ws.Evaluate("AVERAGEA(10, E3)"));
 
+            // Make sure multiple values not in an array work as intended
+            Assert.AreEqual(15.095, (double)workbook.Evaluate("AVERAGEA(-27.5,93.93,64.51,-70.56)"), tolerance);
+
             // Array logical arguments are ignored
             Assert.AreEqual(2, workbook.Evaluate("AVERAGEA({2,TRUE,TRUE,FALSE,FALSE})"));
 

@@ -462,6 +462,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase(@"MATCH(22.5, B3:B45, 1)", 22)]
         [TestCase(@"MATCH(""Rep"", B2:I2)", 4)]
         [TestCase(@"MATCH(""Rep"", B2:I2, 1)", 4)]
+        [TestCase(@"MATCH(E2, B2:I2, 0)", 4)]
         [TestCase(@"MATCH(40, G3:G6, -1)", 2)]
         [TestCase(@"MATCH(""Rep"", B2:I5)", XLError.NoValueAvailable)]
         [TestCase(@"MATCH(""Dummy"", B2:I2, 0)", XLError.NoValueAvailable)]

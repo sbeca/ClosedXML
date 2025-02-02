@@ -386,7 +386,7 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("\"7/18/2011 7:45\"", ExpectedResult = 7)]
         [TestCase("\"4/21/2012\"", ExpectedResult = 0)]
         [TestCase("\"12:00:00\"", ExpectedResult = 12)]
-        [TestCase("\"8/22/2008 3:30:45 PM\"", ExpectedResult = 15, Ignore = "We don't parse seconds")]
+        [TestCase("\"8/22/2008 3:30:45 PM\"", ExpectedResult = 15)]
         [TestCase("\"8/22/2008 3:30 PM\"", ExpectedResult = 15)]
         [TestCase("DATE(2006,2,26)+TIME(2,10,20)", ExpectedResult = 2)]
         [TestCase("TIME(22,56,34)", ExpectedResult = 22)]
@@ -610,8 +610,8 @@ namespace ClosedXML.Tests.Excel.CalcEngine
         [TestCase("\"367\"", ExpectedResult = 0)] // Test string in addition to number in TestCase before
         [TestCase("\"8/22/2008\"", ExpectedResult = 0)]
         [TestCase("\"1/2/2006 10:45 AM\"", ExpectedResult = 0)]
-        [TestCase("\"8/22/2008 3:30:4 PM\"", ExpectedResult = 4, Ignore = "We don't parse seconds")]
-        [TestCase("\"8/22/2008 3:30:23 PM\"", ExpectedResult = 23, Ignore = "We don't parse seconds")]
+        [TestCase("\"8/22/2008 3:30:4 PM\"", ExpectedResult = 4)]
+        [TestCase("\"8/22/2008 3:30:23 PM\"", ExpectedResult = 23)]
         [TestCase("\"3:30:45\"", ExpectedResult = 45)]
         [TestCase("IF(TRUE,)", ExpectedResult = 0)] // Blank
         [TestCase("TRUE", ExpectedResult = 0)]

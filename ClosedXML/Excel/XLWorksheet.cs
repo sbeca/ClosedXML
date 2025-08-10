@@ -8,6 +8,9 @@ using System.IO;
 using System.Linq;
 using ClosedXML.Excel.InsertData;
 using static ClosedXML.Excel.XLProtectionAlgorithm;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml;
 
 namespace ClosedXML.Excel
 {
@@ -591,6 +594,90 @@ namespace ClosedXML.Excel
         IXLTables IXLWorksheet.Tables => Tables;
 
         internal XLTables Tables { get; }
+
+        /// <summary>
+        /// Reads and returns all charts that exist on this worksheet.
+        /// </summary>
+        public IEnumerable<Chart> ReadCharts()
+        {
+            var spreadsheetDocument = Workbook.SpreadsheetDocument;
+            if (spreadsheetDocument?.WorkbookPart == null)
+                yield break;
+
+            if (RelId is null)
+                yield break;
+
+            var worksheetPart = spreadsheetDocument.WorkbookPart.GetPartById(RelId) as WorksheetPart;
+
+            if (worksheetPart?.DrawingsPart == null)
+            {
+                yield break;
+            }
+
+            foreach (var chartPart in worksheetPart.DrawingsPart.ChartParts)
+            {
+                var chartSpace = chartPart.ChartSpace;
+                if (chartSpace == null) continue;
+
+                var newChart = new Chart();
+
+                var title = chartSpace.Descendants<Title>().FirstOrDefault();
+                newChart.Title = title?.ChartText?.RichText?.InnerText ?? Name;
+
+                var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
+                if (plotArea == null) continue;
+
+                IEnumerable<OpenXmlElement>? seriesCollection = null;
+                var lineChart = plotArea.Descendants<LineChart>().FirstOrDefault();
+                var barChart = plotArea.Descendants<BarChart>().FirstOrDefault();
+                var pieChart = plotArea.Descendants<PieChart>().FirstOrDefault();
+
+                if (lineChart != null)
+                {
+                    newChart.Type = ChartType.Line;
+                    seriesCollection = lineChart.Elements<LineChartSeries>();
+                }
+                else if (barChart != null)
+                {
+                    newChart.Type = ChartType.Bar;
+                    seriesCollection = barChart.Elements<BarChartSeries>();
+                }
+                else if (pieChart != null)
+                {
+                    newChart.Type = ChartType.Pie;
+                    seriesCollection = pieChart.Elements<PieChartSeries>();
+                }
+
+                if (seriesCollection == null) continue;
+
+                foreach (var series in seriesCollection)
+                {
+                    var newSeries = new ChartSeries();
+
+                    var seriesText = series.Descendants<SeriesText>().FirstOrDefault();
+
+                    newSeries.Name = seriesText?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
+
+                    var categoryFormula = series.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText;
+                    var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+
+                    if (newChart.Labels.Count == 0 && !string.IsNullOrEmpty(categoryFormula))
+                    {
+                        try { newChart.Labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>(); }
+                        catch { /* Ignore if range is invalid */ }
+                    }
+
+                    if (!string.IsNullOrEmpty(valueFormula))
+                    {
+                        try { newSeries.Values = Workbook.Range(valueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
+                        catch { /* Ignore if range is invalid */ }
+                    }
+                    newChart.Series.Add(newSeries);
+                }
+
+                yield return newChart;
+            }
+        }
 
         public IXLTable Table(Int32 index)
         {

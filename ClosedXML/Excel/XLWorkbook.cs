@@ -130,6 +130,8 @@ namespace ClosedXML.Excel
 
         internal SharedStringTable SharedStringTable { get; } = new();
 
+        internal DocumentFormat.OpenXml.Packaging.SpreadsheetDocument SpreadsheetDocument { get; private set; }
+
         #region Nested Type : XLLoadSource
 
         private enum XLLoadSource
@@ -869,6 +871,7 @@ namespace ClosedXML.Excel
         // Used by Janitor.Fody
         private void DisposeManaged()
         {
+            SpreadsheetDocument?.Dispose();
             Worksheets.ForEach(w => (w as XLWorksheet).Cleanup());
         }
 

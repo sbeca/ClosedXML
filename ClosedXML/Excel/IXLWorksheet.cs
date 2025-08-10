@@ -1,6 +1,7 @@
 using ClosedXML.Excel.CalcEngine.Exceptions;
 using ClosedXML.Excel.Drawings;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace ClosedXML.Excel
@@ -331,6 +332,11 @@ namespace ClosedXML.Excel
         /// Gets an object to manage this worksheet's Excel tables
         /// </summary>
         IXLTables Tables { get; }
+
+        /// <summary>
+        /// Reads and returns all charts that exist on this worksheet.
+        /// </summary>
+        IEnumerable<Chart> ReadCharts();
 
         /// <summary>
         /// Copies the

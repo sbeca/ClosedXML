@@ -43,20 +43,20 @@ namespace ClosedXML.Excel
 
         private void LoadSheets(String fileName, LoadOptions loadOptions)
         {
-            using (var dSpreadsheet = SpreadsheetDocument.Open(fileName, false))
-                LoadSpreadsheetDocument(dSpreadsheet, loadOptions);
+            SpreadsheetDocument = SpreadsheetDocument.Open(fileName, false);
+            LoadSpreadsheetDocument(SpreadsheetDocument, loadOptions);
         }
 
         private void LoadSheets(Stream stream, LoadOptions loadOptions)
         {
-            using (var dSpreadsheet = SpreadsheetDocument.Open(stream, false))
-                LoadSpreadsheetDocument(dSpreadsheet, loadOptions);
+            SpreadsheetDocument = SpreadsheetDocument.Open(stream, false);
+            LoadSpreadsheetDocument(SpreadsheetDocument, loadOptions);
         }
 
         private void LoadSheetsFromTemplate(String fileName, LoadOptions loadOptions)
         {
-            using (var dSpreadsheet = SpreadsheetDocument.CreateFromTemplate(fileName))
-                LoadSpreadsheetDocument(dSpreadsheet, loadOptions);
+            SpreadsheetDocument = SpreadsheetDocument.CreateFromTemplate(fileName);
+            LoadSpreadsheetDocument(SpreadsheetDocument, loadOptions);
 
             // If we load a workbook as a template, we have to treat it as a "new" workbook.
             // The original file will NOT be copied into place before changes are applied

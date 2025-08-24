@@ -628,24 +628,31 @@ namespace ClosedXML.Excel
                 if (plotArea == null) continue;
 
                 IEnumerable<OpenXmlElement>? seriesCollection = null;
-                var lineChart = plotArea.Descendants<LineChart>().FirstOrDefault();
-                var barChart = plotArea.Descendants<BarChart>().FirstOrDefault();
-                var pieChart = plotArea.Descendants<PieChart>().FirstOrDefault();
 
-                if (lineChart != null)
+                if (plotArea.Descendants<LineChart>().FirstOrDefault() is { } lineChart)
                 {
                     newChart.Type = ChartType.Line;
                     seriesCollection = lineChart.Descendants<LineChartSeries>();
                 }
-                else if (barChart != null)
+                else if (plotArea.Descendants<BarChart>().FirstOrDefault() is { } barChart)
                 {
                     newChart.Type = ChartType.Bar;
                     seriesCollection = barChart.Descendants<BarChartSeries>();
                 }
-                else if (pieChart != null)
+                else if (plotArea.Descendants<PieChart>().FirstOrDefault() is { } pieChart)
                 {
                     newChart.Type = ChartType.Pie;
                     seriesCollection = pieChart.Descendants<PieChartSeries>();
+                }
+                else if (plotArea.Descendants<AreaChart>().FirstOrDefault() is { } areaChart)
+                {
+                    newChart.Type = ChartType.Area;
+                    seriesCollection = areaChart.Descendants<AreaChartSeries>();
+                }
+                else if (plotArea.Descendants<ScatterChart>().FirstOrDefault() is { } scatterChart)
+                {
+                    newChart.Type = ChartType.Scatter;
+                    seriesCollection = scatterChart.Descendants<ScatterChartSeries>();
                 }
 
                 if (seriesCollection == null) continue;

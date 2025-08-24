@@ -622,7 +622,7 @@ namespace ClosedXML.Excel
                 var newChart = new Chart();
 
                 var title = chartSpace.Descendants<Title>().FirstOrDefault();
-                newChart.Title = title?.ChartText?.RichText?.InnerText ?? Name;
+                newChart.Title = title?.ChartText?.RichText?.InnerText ?? string.Empty;
 
                 var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
                 if (plotArea == null) continue;

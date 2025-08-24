@@ -627,35 +627,53 @@ namespace ClosedXML.Excel
                 var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
                 if (plotArea == null) continue;
 
+                // Create a list of handlers. Each handler is a function that tries to find a specific
+                // series type and, if successful, sets the chart type and returns the collection.
+                var chartTypeHandlers = new Func<IEnumerable<OpenXmlElement>?>[]
+                {
+                    () => {
+                        var series = plotArea.Descendants<LineChartSeries>();
+                        if (!series.Any()) return null;
+                        newChart.Type = ChartType.Line;
+                        return series;
+                    },
+                    () => {
+                        var series = plotArea.Descendants<BarChartSeries>();
+                        if (!series.Any()) return null;
+                        newChart.Type = ChartType.Bar;
+                        return series;
+                    },
+                    () => {
+                        var series = plotArea.Descendants<PieChartSeries>();
+                        if (!series.Any()) return null;
+                        newChart.Type = ChartType.Pie;
+                        return series;
+                    },
+                    () => {
+                        var series = plotArea.Descendants<AreaChartSeries>();
+                        if (!series.Any()) return null;
+                        newChart.Type = ChartType.Area;
+                        return series;
+                    },
+                    () => {
+                        var series = plotArea.Descendants<ScatterChartSeries>();
+                        if (!series.Any()) return null;
+                        newChart.Type = ChartType.Scatter;
+                        return series;
+                    }
+                };
+
                 IEnumerable<OpenXmlElement>? seriesCollection = null;
 
-                if (plotArea.Descendants<LineChart>().FirstOrDefault() is { } lineChart)
+                // Loop through the handlers until one finds a matching series.
+                foreach (var handler in chartTypeHandlers)
                 {
-                    newChart.Type = ChartType.Line;
-                    seriesCollection = lineChart.Descendants<LineChartSeries>();
-                }
-                else if (plotArea.Descendants<BarChart>().FirstOrDefault() is { } barChart)
-                {
-                    newChart.Type = ChartType.Bar;
-                    seriesCollection = barChart.Descendants<BarChartSeries>();
-                }
-                else if (plotArea.Descendants<PieChart>().FirstOrDefault() is { } pieChart)
-                {
-                    newChart.Type = ChartType.Pie;
-                    seriesCollection = pieChart.Descendants<PieChartSeries>();
-                }
-                else if (plotArea.Descendants<AreaChart>().FirstOrDefault() is { } areaChart)
-                {
-                    newChart.Type = ChartType.Area;
-                    seriesCollection = areaChart.Descendants<AreaChartSeries>();
-                }
-                else if (plotArea.Descendants<ScatterChart>().FirstOrDefault() is { } scatterChart)
-                {
-                    newChart.Type = ChartType.Scatter;
-                    seriesCollection = scatterChart.Descendants<ScatterChartSeries>();
+                    seriesCollection = handler();
+                    if (seriesCollection != null)
+                        break;
                 }
 
-                if (seriesCollection == null) continue;
+                if (seriesCollection == null) continue; // No supported series found.
 
                 foreach (var series in seriesCollection)
                 {

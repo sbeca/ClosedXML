@@ -635,17 +635,17 @@ namespace ClosedXML.Excel
                 if (lineChart != null)
                 {
                     newChart.Type = ChartType.Line;
-                    seriesCollection = lineChart.Elements<LineChartSeries>();
+                    seriesCollection = lineChart.Descendants<LineChartSeries>();
                 }
                 else if (barChart != null)
                 {
                     newChart.Type = ChartType.Bar;
-                    seriesCollection = barChart.Elements<BarChartSeries>();
+                    seriesCollection = barChart.Descendants<BarChartSeries>();
                 }
                 else if (pieChart != null)
                 {
                     newChart.Type = ChartType.Pie;
-                    seriesCollection = pieChart.Elements<PieChartSeries>();
+                    seriesCollection = pieChart.Descendants<PieChartSeries>();
                 }
 
                 if (seriesCollection == null) continue;

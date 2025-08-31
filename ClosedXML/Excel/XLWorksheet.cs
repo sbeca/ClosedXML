@@ -627,64 +627,40 @@ namespace ClosedXML.Excel
                 var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
                 if (plotArea == null) continue;
 
-                // Create a list of handlers. Each handler is a function that tries to find a specific
-                // series type and, if successful, sets the chart type and returns the collection.
-                var chartTypeHandlers = new Func<IEnumerable<OpenXmlElement>?>[]
-                {
-                    () => {
-                        var series = plotArea.Descendants<LineChartSeries>();
-                        if (!series.Any()) return null;
-                        newChart.Type = ChartType.Line;
-                        return series;
-                    },
-                    () => {
-                        var series = plotArea.Descendants<BarChartSeries>();
-                        if (!series.Any()) return null;
-                        newChart.Type = ChartType.Bar;
-                        return series;
-                    },
-                    () => {
-                        var series = plotArea.Descendants<PieChartSeries>();
-                        if (!series.Any()) return null;
-                        newChart.Type = ChartType.Pie;
-                        return series;
-                    },
-                    () => {
-                        var series = plotArea.Descendants<AreaChartSeries>();
-                        if (!series.Any()) return null;
-                        newChart.Type = ChartType.Area;
-                        return series;
-                    },
-                    () => {
-                        var series = plotArea.Descendants<ScatterChartSeries>();
-                        if (!series.Any()) return null;
-                        newChart.Type = ChartType.Scatter;
-                        return series;
-                    }
-                };
+                // Create a single list to hold all series found, regardless of chart type.
+                // This is to handle combo charts (e.g., charts with both lines and bars).
+                var seriesCollection = new List<OpenXmlElement>();
 
-                IEnumerable<OpenXmlElement>? seriesCollection = null;
+                seriesCollection.AddRange(plotArea.Descendants<LineChartSeries>());
+                seriesCollection.AddRange(plotArea.Descendants<BarChartSeries>());
+                seriesCollection.AddRange(plotArea.Descendants<PieChartSeries>());
+                seriesCollection.AddRange(plotArea.Descendants<AreaChartSeries>());
+                seriesCollection.AddRange(plotArea.Descendants<ScatterChartSeries>());
+                // To add more types (e.g., Doughnut), add a new 'AddRange' call here.
 
-                // Loop through the handlers until one finds a matching series.
-                foreach (var handler in chartTypeHandlers)
-                {
-                    seriesCollection = handler();
-                    if (seriesCollection != null)
-                        break;
-                }
+                if (!seriesCollection.Any()) continue; // No supported series found.
 
-                if (seriesCollection == null) continue; // No supported series found.
+                // Set a primary chart type based on the first type found, for rendering hints.
+                if (plotArea.Descendants<ScatterChart>().Any()) newChart.Type = ChartType.Scatter;
+                else if (plotArea.Descendants<LineChart>().Any()) newChart.Type = ChartType.Line;
+                else if (plotArea.Descendants<BarChart>().Any()) newChart.Type = ChartType.Bar;
+                else if (plotArea.Descendants<PieChart>().Any()) newChart.Type = ChartType.Pie;
+                else if (plotArea.Descendants<AreaChart>().Any()) newChart.Type = ChartType.Area;
 
                 foreach (var series in seriesCollection)
                 {
                     var newSeries = new ChartSeries();
 
                     var seriesText = series.Descendants<SeriesText>().FirstOrDefault();
-
                     newSeries.Name = seriesText?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
 
-                    var categoryFormula = series.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText;
-                    var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+                    // Scatter charts use 'xVal'/'yVal', while most others use 'cat'/'val'.
+                    // This checks for both to correctly get the data range formula.
+                    var categoryFormula = series.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText ??
+                                          series.Descendants<XValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+
+                    var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText ??
+                                       series.Descendants<YValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
 
                     if (newChart.Labels.Count == 0 && !string.IsNullOrEmpty(categoryFormula))
                     {
@@ -698,10 +674,7 @@ namespace ClosedXML.Excel
                         catch { /* Ignore if range is invalid */ }
                     }
 
-                    // First, try to find shape properties directly on the series element.
                     var shapeProperties = series.Descendants<ShapeProperties>().FirstOrDefault();
-
-                    // If not found, check inside the first DataPoint element of the series.
                     if (shapeProperties == null)
                     {
                         var firstDataPoint = series.Descendants<DataPoint>().FirstOrDefault();

@@ -697,6 +697,26 @@ namespace ClosedXML.Excel
                         try { newSeries.Values = Workbook.Range(valueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
                         catch { /* Ignore if range is invalid */ }
                     }
+
+                    var shapeProperties = series.Descendants<ShapeProperties>().FirstOrDefault();
+                    if (shapeProperties != null)
+                    {
+                        // For Bar/Column/Pie charts, look for a solid fill color
+                        var solidFill = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
+                        if (solidFill?.RgbColorModelHex != null)
+                        {
+                            newSeries.FillColor = $"#{solidFill.RgbColorModelHex.Val}";
+                        }
+
+                        // For Line charts, look for the line color
+                        var outline = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
+                        var lineSolidFill = outline?.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
+                        if (lineSolidFill?.RgbColorModelHex != null)
+                        {
+                            newSeries.LineColor = $"#{lineSolidFill.RgbColorModelHex.Val}";
+                        }
+                    }
+
                     newChart.Series.Add(newSeries);
                 }
 

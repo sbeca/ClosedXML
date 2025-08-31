@@ -698,17 +698,24 @@ namespace ClosedXML.Excel
                         catch { /* Ignore if range is invalid */ }
                     }
 
+                    // First, try to find shape properties directly on the series element.
                     var shapeProperties = series.Descendants<ShapeProperties>().FirstOrDefault();
+
+                    // If not found, check inside the first DataPoint element of the series.
+                    if (shapeProperties == null)
+                    {
+                        var firstDataPoint = series.Descendants<DataPoint>().FirstOrDefault();
+                        shapeProperties = firstDataPoint?.Descendants<ShapeProperties>().FirstOrDefault();
+                    }
+
                     if (shapeProperties != null)
                     {
-                        // For Bar/Column/Pie charts, look for a solid fill color
                         var solidFill = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
                         if (solidFill?.RgbColorModelHex != null)
                         {
                             newSeries.FillColor = $"#{solidFill.RgbColorModelHex.Val}";
                         }
 
-                        // For Line charts, look for the line color
                         var outline = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
                         var lineSolidFill = outline?.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
                         if (lineSolidFill?.RgbColorModelHex != null)

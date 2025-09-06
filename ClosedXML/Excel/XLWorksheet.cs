@@ -640,6 +640,11 @@ namespace ClosedXML.Excel
 
                 if (!seriesCollection.Any()) continue; // No supported series found.
 
+                // For scatter charts, we need to read the labels (X-values) for each series.
+                // For other charts, they all share the same labels, so we only need to read them once.
+                bool labelsAreShared = newChart.Type != ChartType.Scatter;
+                bool labelsHaveBeenRead = false;
+
                 // Set a primary chart type based on the first type found, for rendering hints.
                 if (plotArea.Descendants<ScatterChart>().Any()) newChart.Type = ChartType.Scatter;
                 else if (plotArea.Descendants<LineChart>().Any()) newChart.Type = ChartType.Line;
@@ -662,9 +667,22 @@ namespace ClosedXML.Excel
                     var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText ??
                                        series.Descendants<YValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
 
-                    if (newChart.Labels.Count == 0 && !string.IsNullOrEmpty(categoryFormula))
+                    if ((!labelsAreShared || !labelsHaveBeenRead) && !string.IsNullOrEmpty(categoryFormula))
                     {
-                        try { newChart.Labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>(); }
+                        try
+                        {
+                            var labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>();
+                            if (labelsAreShared)
+                            {
+                                newChart.Labels = labels;
+                                labelsHaveBeenRead = true;
+                            }
+                            else
+                            {
+                                // For scatter charts, each series has its own X-values (labels)
+                                newSeries.Labels = labels;
+                            }
+                        }
                         catch { /* Ignore if range is invalid */ }
                     }
 

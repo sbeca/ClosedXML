@@ -23,6 +23,7 @@ public class ChartSeries
 {
     public string Name { get; internal set; } = string.Empty;
     public List<double> Values { get; internal set; } = new();
+    public List<string>? Labels { get; internal set; }
     public string? LineColor { get; internal set; }
     public string? FillColor { get; internal set; }
 }

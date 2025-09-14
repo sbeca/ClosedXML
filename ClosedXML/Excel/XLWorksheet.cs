@@ -663,14 +663,12 @@ namespace ClosedXML.Excel
                                     var labels = new List<string>();
                                     foreach (var cell in labelCells)
                                     {
-                                        // Use TryGetValue to safely get the string value.
                                         if (cell.TryGetValue(out string cellValue))
                                         {
                                             labels.Add(cellValue);
                                         }
                                         else
                                         {
-                                            // Handle empty cells if needed, e.g., add an empty string
                                             labels.Add(string.Empty);
                                         }
                                     }

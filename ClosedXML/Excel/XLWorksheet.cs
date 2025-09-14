@@ -710,7 +710,19 @@ namespace ClosedXML.Excel
                     var categoryFormula = firstSeries?.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText;
                     if (!string.IsNullOrEmpty(categoryFormula))
                     {
-                        try { newChart.Labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>(); }
+                        try
+                        {
+                            var labelCells = Workbook.Range(categoryFormula)?.Cells();
+                            if (labelCells != null)
+                            {
+                                var labels = new List<string>();
+                                foreach (var cell in labelCells)
+                                {
+                                    labels.Add(cell.GetFormattedString());
+                                }
+                                newChart.Labels = labels;
+                            }
+                        }
                         catch { /* Ignore */ }
                     }
 
@@ -722,7 +734,22 @@ namespace ClosedXML.Excel
                         var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
                         if (!string.IsNullOrEmpty(valueFormula))
                         {
-                            try { newSeries.Values = Workbook.Range(valueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
+                            try
+                            {
+                                var valueCells = Workbook.Range(valueFormula)?.Cells();
+                                if (valueCells != null)
+                                {
+                                    var values = new List<double>();
+                                    foreach (var cell in valueCells)
+                                    {
+                                        if (cell.TryGetValue(out double cellValue))
+                                        {
+                                            values.Add(cellValue);
+                                        }
+                                    }
+                                    newSeries.Values = values;
+                                }
+                            }
                             catch { /* Ignore */ }
                         }
 

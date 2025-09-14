@@ -627,98 +627,103 @@ namespace ClosedXML.Excel
                 var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
                 if (plotArea == null) continue;
 
-                // Create a single list to hold all series found, regardless of chart type.
-                // This is to handle combo charts (e.g., charts with both lines and bars).
                 var seriesCollection = new List<OpenXmlElement>();
-
                 seriesCollection.AddRange(plotArea.Descendants<LineChartSeries>());
                 seriesCollection.AddRange(plotArea.Descendants<BarChartSeries>());
                 seriesCollection.AddRange(plotArea.Descendants<PieChartSeries>());
                 seriesCollection.AddRange(plotArea.Descendants<AreaChartSeries>());
                 seriesCollection.AddRange(plotArea.Descendants<ScatterChartSeries>());
-                // To add more types (e.g., Doughnut), add a new 'AddRange' call here.
 
-                if (!seriesCollection.Any()) continue; // No supported series found.
+                if (!seriesCollection.Any()) continue;
 
-                // For scatter charts, we need to read the labels (X-values) for each series.
-                // For other charts, they all share the same labels, so we only need to read them once.
-                bool labelsAreShared = newChart.Type != ChartType.Scatter;
-                bool labelsHaveBeenRead = false;
-
-                // Set a primary chart type based on the first type found, for rendering hints.
                 if (plotArea.Descendants<ScatterChart>().Any()) newChart.Type = ChartType.Scatter;
                 else if (plotArea.Descendants<LineChart>().Any()) newChart.Type = ChartType.Line;
                 else if (plotArea.Descendants<BarChart>().Any()) newChart.Type = ChartType.Bar;
                 else if (plotArea.Descendants<PieChart>().Any()) newChart.Type = ChartType.Pie;
                 else if (plotArea.Descendants<AreaChart>().Any()) newChart.Type = ChartType.Area;
 
-                foreach (var series in seriesCollection)
+                if (newChart.Type == ChartType.Scatter)
                 {
-                    var newSeries = new ChartSeries();
-
-                    var seriesText = series.Descendants<SeriesText>().FirstOrDefault();
-                    newSeries.Name = seriesText?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
-
-                    // Scatter charts use 'xVal'/'yVal', while most others use 'cat'/'val'.
-                    // This checks for both to correctly get the data range formula.
-                    var categoryFormula = series.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText ??
-                                          series.Descendants<XValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
-
-                    var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText ??
-                                       series.Descendants<YValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
-
-                    if ((!labelsAreShared || !labelsHaveBeenRead) && !string.IsNullOrEmpty(categoryFormula))
+                    // Logic for Scatter charts where each series has its own X-Values (Labels)
+                    foreach (var series in seriesCollection.OfType<ScatterChartSeries>())
                     {
-                        try
+                        var newSeries = new ChartSeries();
+                        newSeries.Name = series.Descendants<SeriesText>().FirstOrDefault()?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
+
+                        var xValueFormula = series.Descendants<XValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+                        var yValueFormula = series.Descendants<YValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+
+                        if (!string.IsNullOrEmpty(xValueFormula))
                         {
-                            var labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>();
-                            if (labelsAreShared)
-                            {
-                                newChart.Labels = labels;
-                                labelsHaveBeenRead = true;
-                            }
-                            else
-                            {
-                                // For scatter charts, each series has its own X-values (labels)
-                                newSeries.Labels = labels;
-                            }
-                        }
-                        catch { /* Ignore if range is invalid */ }
-                    }
-
-                    if (!string.IsNullOrEmpty(valueFormula))
-                    {
-                        try { newSeries.Values = Workbook.Range(valueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
-                        catch { /* Ignore if range is invalid */ }
-                    }
-
-                    var shapeProperties = series.Descendants<ShapeProperties>().FirstOrDefault();
-                    if (shapeProperties == null)
-                    {
-                        var firstDataPoint = series.Descendants<DataPoint>().FirstOrDefault();
-                        shapeProperties = firstDataPoint?.Descendants<ShapeProperties>().FirstOrDefault();
-                    }
-
-                    if (shapeProperties != null)
-                    {
-                        var solidFill = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
-                        if (solidFill?.RgbColorModelHex != null)
-                        {
-                            newSeries.FillColor = $"#{solidFill.RgbColorModelHex.Val}";
+                            try { newSeries.Labels = Workbook.Range(xValueFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>(); }
+                            catch { /* Ignore */ }
                         }
 
-                        var outline = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
-                        var lineSolidFill = outline?.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
-                        if (lineSolidFill?.RgbColorModelHex != null)
+                        if (!string.IsNullOrEmpty(yValueFormula))
                         {
-                            newSeries.LineColor = $"#{lineSolidFill.RgbColorModelHex.Val}";
+                            try { newSeries.Values = Workbook.Range(yValueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
+                            catch { /* Ignore */ }
                         }
+
+                        ExtractAndSetSeriesColors(series, newSeries);
+                        newChart.Series.Add(newSeries);
+                    }
+                }
+                else
+                {
+                    // Logic for all other charts that share one set of Labels
+                    var firstSeries = seriesCollection.FirstOrDefault();
+                    var categoryFormula = firstSeries?.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText;
+                    if (!string.IsNullOrEmpty(categoryFormula))
+                    {
+                        try { newChart.Labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>(); }
+                        catch { /* Ignore */ }
                     }
 
-                    newChart.Series.Add(newSeries);
+                    foreach (var series in seriesCollection)
+                    {
+                        var newSeries = new ChartSeries();
+                        newSeries.Name = series.Descendants<SeriesText>().FirstOrDefault()?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
+
+                        var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+                        if (!string.IsNullOrEmpty(valueFormula))
+                        {
+                            try { newSeries.Values = Workbook.Range(valueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
+                            catch { /* Ignore */ }
+                        }
+
+                        ExtractAndSetSeriesColors(series, newSeries);
+                        newChart.Series.Add(newSeries);
+                    }
                 }
 
                 yield return newChart;
+            }
+        }
+
+        private void ExtractAndSetSeriesColors(OpenXmlElement series, ChartSeries newSeries)
+        {
+            var shapeProperties = series.Descendants<ShapeProperties>().FirstOrDefault();
+            if (shapeProperties == null)
+            {
+                var firstDataPoint = series.Descendants<DataPoint>().FirstOrDefault();
+                shapeProperties = firstDataPoint?.Descendants<ShapeProperties>().FirstOrDefault();
+            }
+
+            if (shapeProperties != null)
+            {
+                var solidFill = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
+                if (solidFill?.RgbColorModelHex != null)
+                {
+                    newSeries.FillColor = $"#{solidFill.RgbColorModelHex.Val}";
+                }
+
+                var outline = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
+                var lineSolidFill = outline?.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
+                if (lineSolidFill?.RgbColorModelHex != null)
+                {
+                    newSeries.LineColor = $"#{lineSolidFill.RgbColorModelHex.Val}";
+                }
             }
         }
 

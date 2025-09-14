@@ -655,13 +655,49 @@ namespace ClosedXML.Excel
 
                         if (!string.IsNullOrEmpty(xValueFormula))
                         {
-                            try { newSeries.Labels = Workbook.Range(xValueFormula)?.Cells().Select(c => c.GetValue<string>()).ToList() ?? new List<string>(); }
+                            try
+                            {
+                                var labelCells = Workbook.Range(xValueFormula)?.Cells();
+                                if (labelCells != null)
+                                {
+                                    var labels = new List<string>();
+                                    foreach (var cell in labelCells)
+                                    {
+                                        // Use TryGetValue to safely get the string value.
+                                        if (cell.TryGetValue(out string cellValue))
+                                        {
+                                            labels.Add(cellValue);
+                                        }
+                                        else
+                                        {
+                                            // Handle empty cells if needed, e.g., add an empty string
+                                            labels.Add(string.Empty);
+                                        }
+                                    }
+                                    newSeries.Labels = labels;
+                                }
+                            }
                             catch { /* Ignore */ }
                         }
 
                         if (!string.IsNullOrEmpty(yValueFormula))
                         {
-                            try { newSeries.Values = Workbook.Range(yValueFormula)?.Cells().Select(c => c.GetValue<double>()).ToList() ?? new List<double>(); }
+                            try
+                            {
+                                var valueCells = Workbook.Range(yValueFormula)?.Cells();
+                                if (valueCells != null)
+                                {
+                                    var values = new List<double>();
+                                    foreach (var cell in valueCells)
+                                    {
+                                        if (cell.TryGetValue(out double cellValue))
+                                        {
+                                            values.Add(cellValue);
+                                        }
+                                    }
+                                    newSeries.Values = values;
+                                }
+                            }
                             catch { /* Ignore */ }
                         }
 

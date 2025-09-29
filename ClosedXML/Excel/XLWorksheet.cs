@@ -602,17 +602,14 @@ namespace ClosedXML.Excel
         {
             var spreadsheetDocument = Workbook.SpreadsheetDocument;
             if (spreadsheetDocument?.WorkbookPart == null)
-                yield break;
+            { yield break; }
 
             if (RelId is null)
-                yield break;
+            { yield break; }
 
             var worksheetPart = spreadsheetDocument.WorkbookPart.GetPartById(RelId) as WorksheetPart;
-
             if (worksheetPart?.DrawingsPart == null)
-            {
-                yield break;
-            }
+            { yield break; }
 
             foreach (var chartPart in worksheetPart.DrawingsPart.ChartParts)
             {
@@ -620,146 +617,107 @@ namespace ClosedXML.Excel
                 if (chartSpace == null) continue;
 
                 var newChart = new Chart();
-
                 var title = chartSpace.Descendants<Title>().FirstOrDefault();
                 newChart.Title = title?.ChartText?.RichText?.InnerText ?? string.Empty;
 
                 var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
                 if (plotArea == null) continue;
 
-                var seriesCollection = new List<OpenXmlElement>();
-                seriesCollection.AddRange(plotArea.Descendants<LineChartSeries>());
-                seriesCollection.AddRange(plotArea.Descendants<BarChartSeries>());
-                seriesCollection.AddRange(plotArea.Descendants<PieChartSeries>());
-                seriesCollection.AddRange(plotArea.Descendants<AreaChartSeries>());
-                seriesCollection.AddRange(plotArea.Descendants<ScatterChartSeries>());
+                bool labelsHaveBeenRead = false;
 
-                if (!seriesCollection.Any()) continue;
-
-                if (plotArea.Descendants<ScatterChart>().Any()) newChart.Type = ChartType.Scatter;
-                else if (plotArea.Descendants<LineChart>().Any()) newChart.Type = ChartType.Line;
-                else if (plotArea.Descendants<BarChart>().Any()) newChart.Type = ChartType.Bar;
-                else if (plotArea.Descendants<PieChart>().Any()) newChart.Type = ChartType.Pie;
-                else if (plotArea.Descendants<AreaChart>().Any()) newChart.Type = ChartType.Area;
-
-                if (newChart.Type == ChartType.Scatter)
+                if (plotArea.Descendants<BarChart>().FirstOrDefault() is { } barChart)
                 {
-                    // Logic for Scatter charts where each series has its own X-Values (Labels)
-                    foreach (var series in seriesCollection.OfType<ScatterChartSeries>())
-                    {
-                        var newSeries = new ChartSeries();
-                        newSeries.Name = series.Descendants<SeriesText>().FirstOrDefault()?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
-
-                        var xValueFormula = series.Descendants<XValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
-                        var yValueFormula = series.Descendants<YValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
-
-                        if (!string.IsNullOrEmpty(xValueFormula))
-                        {
-                            try
-                            {
-                                var labelCells = Workbook.Range(xValueFormula)?.Cells();
-                                if (labelCells != null)
-                                {
-                                    var labels = new List<string>();
-                                    foreach (var cell in labelCells)
-                                    {
-                                        if (cell.TryGetValue(out string cellValue))
-                                        {
-                                            labels.Add(cellValue);
-                                        }
-                                        else
-                                        {
-                                            labels.Add(string.Empty);
-                                        }
-                                    }
-                                    newSeries.Labels = labels;
-                                }
-                            }
-                            catch { /* Ignore */ }
-                        }
-
-                        if (!string.IsNullOrEmpty(yValueFormula))
-                        {
-                            try
-                            {
-                                var valueCells = Workbook.Range(yValueFormula)?.Cells();
-                                if (valueCells != null)
-                                {
-                                    var values = new List<double>();
-                                    foreach (var cell in valueCells)
-                                    {
-                                        if (cell.TryGetValue(out double cellValue))
-                                        {
-                                            values.Add(cellValue);
-                                        }
-                                    }
-                                    newSeries.Values = values;
-                                }
-                            }
-                            catch { /* Ignore */ }
-                        }
-
-                        ExtractAndSetSeriesColors(series, newSeries);
-                        newChart.Series.Add(newSeries);
-                    }
+                    newChart.Type = ChartType.Bar; // Set primary type
+                    foreach (var series in barChart.Descendants<BarChartSeries>())
+                    { newChart.Series.Add(ParseSeries(series, ChartType.Bar, newChart, ref labelsHaveBeenRead)); }
                 }
-                else
+                if (plotArea.Descendants<LineChart>().FirstOrDefault() is { } lineChart)
                 {
-                    // Logic for all other charts that share one set of Labels
-                    var firstSeries = seriesCollection.FirstOrDefault();
-                    var categoryFormula = firstSeries?.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText;
-                    if (!string.IsNullOrEmpty(categoryFormula))
-                    {
-                        try
-                        {
-                            var labelCells = Workbook.Range(categoryFormula)?.Cells();
-                            if (labelCells != null)
-                            {
-                                var labels = new List<string>();
-                                foreach (var cell in labelCells)
-                                {
-                                    labels.Add(cell.GetFormattedString());
-                                }
-                                newChart.Labels = labels;
-                            }
-                        }
-                        catch { /* Ignore */ }
-                    }
-
-                    foreach (var series in seriesCollection)
-                    {
-                        var newSeries = new ChartSeries();
-                        newSeries.Name = series.Descendants<SeriesText>().FirstOrDefault()?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
-
-                        var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
-                        if (!string.IsNullOrEmpty(valueFormula))
-                        {
-                            try
-                            {
-                                var valueCells = Workbook.Range(valueFormula)?.Cells();
-                                if (valueCells != null)
-                                {
-                                    var values = new List<double>();
-                                    foreach (var cell in valueCells)
-                                    {
-                                        if (cell.TryGetValue(out double cellValue))
-                                        {
-                                            values.Add(cellValue);
-                                        }
-                                    }
-                                    newSeries.Values = values;
-                                }
-                            }
-                            catch { /* Ignore */ }
-                        }
-
-                        ExtractAndSetSeriesColors(series, newSeries);
-                        newChart.Series.Add(newSeries);
-                    }
+                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Line;
+                    foreach (var series in lineChart.Descendants<LineChartSeries>())
+                    { newChart.Series.Add(ParseSeries(series, ChartType.Line, newChart, ref labelsHaveBeenRead)); }
+                }
+                if (plotArea.Descendants<PieChart>().FirstOrDefault() is { } pieChart)
+                {
+                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Pie;
+                    foreach (var series in pieChart.Descendants<PieChartSeries>())
+                    { newChart.Series.Add(ParseSeries(series, ChartType.Pie, newChart, ref labelsHaveBeenRead)); }
+                }
+                if (plotArea.Descendants<AreaChart>().FirstOrDefault() is { } areaChart)
+                {
+                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Area;
+                    foreach (var series in areaChart.Descendants<AreaChartSeries>())
+                    { newChart.Series.Add(ParseSeries(series, ChartType.Area, newChart, ref labelsHaveBeenRead)); }
+                }
+                if (plotArea.Descendants<ScatterChart>().FirstOrDefault() is { } scatterChart)
+                {
+                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Scatter;
+                    foreach (var series in scatterChart.Descendants<ScatterChartSeries>())
+                    { newChart.Series.Add(ParseSeries(series, ChartType.Scatter, newChart, ref labelsHaveBeenRead)); }
                 }
 
-                yield return newChart;
+                if (newChart.Series.Any())
+                { yield return newChart; }
             }
+        }
+
+        /// <summary>
+        /// A helper method to parse the details of a single chart series.
+        /// </summary>
+        private ChartSeries ParseSeries(OpenXmlElement series, ChartType seriesType, Chart parentChart, ref bool labelsHaveBeenRead)
+        {
+            var newSeries = new ChartSeries { Type = seriesType };
+
+            newSeries.Name = series.Descendants<SeriesText>().FirstOrDefault()?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
+
+            var categoryFormula = series.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText ??
+                                  series.Descendants<XValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+
+            var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText ??
+                               series.Descendants<YValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
+
+            if (!string.IsNullOrEmpty(categoryFormula))
+            {
+                try
+                {
+                    var labels = Workbook.Range(categoryFormula)?.Cells().Select(c => c.GetFormattedString()).ToList() ?? new List<string>();
+                    if (seriesType != ChartType.Scatter)
+                    {
+                        if (!labelsHaveBeenRead)
+                        {
+                            parentChart.Labels = labels;
+                            labelsHaveBeenRead = true;
+                        }
+                    }
+                    else
+                    {
+                        newSeries.Labels = labels;
+                    }
+                }
+                catch { /* Ignore */ }
+            }
+
+            if (!string.IsNullOrEmpty(valueFormula))
+            {
+                try
+                {
+                    var valueCells = Workbook.Range(valueFormula)?.Cells();
+                    if (valueCells != null)
+                    {
+                        var values = new List<double>();
+                        foreach (var cell in valueCells)
+                        {
+                            if (cell.TryGetValue(out double cellValue))
+                            { values.Add(cellValue); }
+                        }
+                        newSeries.Values = values;
+                    }
+                }
+                catch { /* Ignore */ }
+            }
+
+            ExtractAndSetSeriesColors(series, newSeries);
+            return newSeries;
         }
 
         private void ExtractAndSetSeriesColors(OpenXmlElement series, ChartSeries newSeries)

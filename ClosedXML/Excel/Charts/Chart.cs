@@ -22,6 +22,7 @@ public enum ChartType
 public class ChartSeries
 {
     public string Name { get; internal set; } = string.Empty;
+    public ChartType Type { get; internal set; }
     public List<double> Values { get; internal set; } = new();
     public List<string>? Labels { get; internal set; }
     public string? LineColor { get; internal set; }

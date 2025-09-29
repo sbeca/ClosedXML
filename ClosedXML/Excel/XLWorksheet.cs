@@ -602,62 +602,86 @@ namespace ClosedXML.Excel
         {
             var spreadsheetDocument = Workbook.SpreadsheetDocument;
             if (spreadsheetDocument?.WorkbookPart == null)
-            { yield break; }
+            {
+                yield break;
+            }
 
             if (RelId is null)
-            { yield break; }
+            {
+                yield break;
+            }
 
             var worksheetPart = spreadsheetDocument.WorkbookPart.GetPartById(RelId) as WorksheetPart;
             if (worksheetPart?.DrawingsPart == null)
-            { yield break; }
+            {
+                yield break;
+            }
 
             foreach (var chartPart in worksheetPart.DrawingsPart.ChartParts)
             {
                 var chartSpace = chartPart.ChartSpace;
-                if (chartSpace == null) continue;
+                if (chartSpace == null) { continue; }
 
                 var newChart = new Chart();
                 var title = chartSpace.Descendants<Title>().FirstOrDefault();
                 newChart.Title = title?.ChartText?.RichText?.InnerText ?? string.Empty;
 
                 var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
-                if (plotArea == null) continue;
+                if (plotArea == null) { continue; }
 
                 bool labelsHaveBeenRead = false;
 
-                if (plotArea.Descendants<BarChart>().FirstOrDefault() is { } barChart)
+                // This iterates through each possible chart type,
+                // finds all charts of that type, and parses their series.
+                foreach (var barChart in plotArea.Descendants<BarChart>())
                 {
-                    newChart.Type = ChartType.Bar; // Set primary type
+                    if (newChart.Type == ChartType.Unknown) { newChart.Type = ChartType.Bar; }
                     foreach (var series in barChart.Descendants<BarChartSeries>())
-                    { newChart.Series.Add(ParseSeries(series, ChartType.Bar, newChart, ref labelsHaveBeenRead)); }
+                    {
+                        newChart.Series.Add(ParseSeries(series, ChartType.Bar, newChart, ref labelsHaveBeenRead));
+                    }
                 }
-                if (plotArea.Descendants<LineChart>().FirstOrDefault() is { } lineChart)
+
+                foreach (var lineChart in plotArea.Descendants<LineChart>())
                 {
-                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Line;
+                    if (newChart.Type == ChartType.Unknown) { newChart.Type = ChartType.Line; }
                     foreach (var series in lineChart.Descendants<LineChartSeries>())
-                    { newChart.Series.Add(ParseSeries(series, ChartType.Line, newChart, ref labelsHaveBeenRead)); }
+                    {
+                        newChart.Series.Add(ParseSeries(series, ChartType.Line, newChart, ref labelsHaveBeenRead));
+                    }
                 }
-                if (plotArea.Descendants<PieChart>().FirstOrDefault() is { } pieChart)
+
+                foreach (var pieChart in plotArea.Descendants<PieChart>())
                 {
-                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Pie;
+                    if (newChart.Type == ChartType.Unknown) { newChart.Type = ChartType.Pie; }
                     foreach (var series in pieChart.Descendants<PieChartSeries>())
-                    { newChart.Series.Add(ParseSeries(series, ChartType.Pie, newChart, ref labelsHaveBeenRead)); }
+                    {
+                        newChart.Series.Add(ParseSeries(series, ChartType.Pie, newChart, ref labelsHaveBeenRead));
+                    }
                 }
-                if (plotArea.Descendants<AreaChart>().FirstOrDefault() is { } areaChart)
+
+                foreach (var areaChart in plotArea.Descendants<AreaChart>())
                 {
-                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Area;
+                    if (newChart.Type == ChartType.Unknown) { newChart.Type = ChartType.Area; }
                     foreach (var series in areaChart.Descendants<AreaChartSeries>())
-                    { newChart.Series.Add(ParseSeries(series, ChartType.Area, newChart, ref labelsHaveBeenRead)); }
+                    {
+                        newChart.Series.Add(ParseSeries(series, ChartType.Area, newChart, ref labelsHaveBeenRead));
+                    }
                 }
-                if (plotArea.Descendants<ScatterChart>().FirstOrDefault() is { } scatterChart)
+
+                foreach (var scatterChart in plotArea.Descendants<ScatterChart>())
                 {
-                    if (newChart.Type == ChartType.Unknown) newChart.Type = ChartType.Scatter;
+                    if (newChart.Type == ChartType.Unknown) { newChart.Type = ChartType.Scatter; }
                     foreach (var series in scatterChart.Descendants<ScatterChartSeries>())
-                    { newChart.Series.Add(ParseSeries(series, ChartType.Scatter, newChart, ref labelsHaveBeenRead)); }
+                    {
+                        newChart.Series.Add(ParseSeries(series, ChartType.Scatter, newChart, ref labelsHaveBeenRead));
+                    }
                 }
 
                 if (newChart.Series.Any())
-                { yield return newChart; }
+                {
+                    yield return newChart;
+                }
             }
         }
 

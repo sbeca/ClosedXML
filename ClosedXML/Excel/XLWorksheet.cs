@@ -637,7 +637,7 @@ namespace ClosedXML.Excel
                 { continue; }
 
                 // 3. Get the ChartPart using the r:id
-                if (worksheetPart.DrawingsPart.TryGetPartById(chartReference.Id, out var openXmlPart) && openXmlPart is ChartPart chartPart)
+                if (worksheetPart.DrawingsPart.TryGetPartById(chartReference.Id.Value!, out var openXmlPart) && openXmlPart is ChartPart chartPart)
                 {
                     var chartSpace = chartPart.ChartSpace;
                     if (chartSpace == null)

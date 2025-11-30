@@ -34,6 +34,7 @@ public class ChartSeries
 /// </summary>
 public class Chart
 {
+    public int Id { get; internal set; }
     public string Title { get; internal set; } = string.Empty;
     public ChartType Type { get; internal set; }
     public List<string> Labels { get; internal set; } = new(); // For X-Axis / Categories

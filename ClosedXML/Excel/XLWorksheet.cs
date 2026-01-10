@@ -645,7 +645,29 @@ namespace ClosedXML.Excel
                     };
 
                     var title = chartSpace.Descendants<Title>().FirstOrDefault();
-                    newChart.Title = title?.ChartText?.RichText?.InnerText ?? string.Empty;
+                    string? titleText = title?.ChartText?.RichText?.InnerText;
+
+                    // If no static text found, check for a Cell Reference
+                    if (string.IsNullOrWhiteSpace(titleText))
+                    {
+                        var stringRef = title?.ChartText?.StringReference;
+
+                        // First try reading from the internal cache
+                        titleText = stringRef?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText;
+
+                        // If cache is empty, try resolving the Formula
+                        if (string.IsNullOrWhiteSpace(titleText) && stringRef?.Formula != null)
+                        {
+                            try
+                            {
+                                var titleCell = Workbook.Range(stringRef.Formula.InnerText)?.Cells().FirstOrDefault();
+                                titleText = titleCell?.GetFormattedString();
+                            }
+                            catch { /* Ignore invalid ranges */ }
+                        }
+                    }
+
+                    newChart.Title = titleText ?? string.Empty;
 
                     var plotArea = chartSpace.Descendants<PlotArea>().FirstOrDefault();
                     if (plotArea == null)

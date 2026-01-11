@@ -725,7 +725,9 @@ namespace ClosedXML.Excel
                         newSeries.Name = seriesText?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
 
                         // 6. Handle X-Axis/Categories (Scatter vs Others)
-                        var categoryFormula = series.Descendants<CategoryAxisData>().FirstOrDefault()?.StringReference?.Formula?.InnerText ??
+                        var catAxis = series.Descendants<CategoryAxisData>().FirstOrDefault();
+                        var categoryFormula = catAxis?.StringReference?.Formula?.InnerText ??
+                                              catAxis?.NumberReference?.Formula?.InnerText ??
                                               series.Descendants<XValues>().FirstOrDefault()?.NumberReference?.Formula?.InnerText;
 
                         var valueFormula = series.Descendants<Values>().FirstOrDefault()?.NumberReference?.Formula?.InnerText ??

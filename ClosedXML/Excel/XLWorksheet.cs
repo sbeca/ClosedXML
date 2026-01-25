@@ -783,21 +783,21 @@ namespace ClosedXML.Excel
                         }
 
                         // 8. Handle Colors
-                        var shapeProperties = series.Descendants<ShapeProperties>().FirstOrDefault();
-                        if (shapeProperties == null)
+                        var chartShapeProperties = series.Descendants<ChartShapeProperties>().FirstOrDefault();
+                        if (chartShapeProperties == null)
                         {
                             var firstDataPoint = series.Descendants<DataPoint>().FirstOrDefault();
-                            shapeProperties = firstDataPoint?.Descendants<ShapeProperties>().FirstOrDefault();
+                            chartShapeProperties = firstDataPoint?.Descendants<ChartShapeProperties>().FirstOrDefault();
                         }
 
-                        if (shapeProperties != null)
+                        if (chartShapeProperties != null)
                         {
-                            var solidFill = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
+                            var solidFill = chartShapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
                             var fillColor = ResolveColorFromSolidFill(solidFill, spreadsheetDocument.WorkbookPart);
                             if (fillColor != null)
                             { newSeries.FillColor = fillColor; }
 
-                            var outline = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
+                            var outline = chartShapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
                             var lineSolidFill = outline?.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
                             var lineColor = ResolveColorFromSolidFill(lineSolidFill, spreadsheetDocument.WorkbookPart);
                             if (lineColor != null)

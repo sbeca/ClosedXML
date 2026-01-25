@@ -793,13 +793,15 @@ namespace ClosedXML.Excel
                         if (shapeProperties != null)
                         {
                             var solidFill = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
-                            if (solidFill?.RgbColorModelHex != null)
-                            { newSeries.FillColor = $"#{solidFill.RgbColorModelHex.Val}"; }
+                            var fillColor = ResolveColorFromSolidFill(solidFill, spreadsheetDocument.WorkbookPart);
+                            if (fillColor != null)
+                            { newSeries.FillColor = fillColor; }
 
                             var outline = shapeProperties.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().FirstOrDefault();
                             var lineSolidFill = outline?.Descendants<DocumentFormat.OpenXml.Drawing.SolidFill>().FirstOrDefault();
-                            if (lineSolidFill?.RgbColorModelHex != null)
-                            { newSeries.LineColor = $"#{lineSolidFill.RgbColorModelHex.Val}"; }
+                            var lineColor = ResolveColorFromSolidFill(lineSolidFill, spreadsheetDocument.WorkbookPart);
+                            if (lineColor != null)
+                            { newSeries.LineColor = lineColor; }
                         }
 
                         newChart.Series.Add(newSeries);
@@ -812,8 +814,70 @@ namespace ClosedXML.Excel
         }
 
         /// <summary>
-        /// A helper method to parse the details of a single chart series.
+        /// Resolves a color from a SolidFill element, handling both direct RGB and theme colors.
         /// </summary>
+        private static string? ResolveColorFromSolidFill(
+            DocumentFormat.OpenXml.Drawing.SolidFill? solidFill,
+            WorkbookPart? workbookPart)
+        {
+            if (solidFill == null)
+            { return null; }
+
+            // 1. Direct RGB hex color
+            if (solidFill.RgbColorModelHex?.Val != null)
+            { return $"#{solidFill.RgbColorModelHex.Val}"; }
+
+            // 2. Theme/Scheme color
+            var schemeColor = solidFill.SchemeColor;
+            if (schemeColor?.Val != null && workbookPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme != null)
+            {
+                var colorScheme = workbookPart.ThemePart.Theme.ThemeElements.ColorScheme;
+                var schemeVal = schemeColor.Val.Value;
+
+                DocumentFormat.OpenXml.Drawing.Color2Type? colorElement = null;
+                if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Dark1)
+                { colorElement = colorScheme.Dark1Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Light1)
+                { colorElement = colorScheme.Light1Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Dark2)
+                { colorElement = colorScheme.Dark2Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Light2)
+                { colorElement = colorScheme.Light2Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent1)
+                { colorElement = colorScheme.Accent1Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent2)
+                { colorElement = colorScheme.Accent2Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent3)
+                { colorElement = colorScheme.Accent3Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent4)
+                { colorElement = colorScheme.Accent4Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent5)
+                { colorElement = colorScheme.Accent5Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Accent6)
+                { colorElement = colorScheme.Accent6Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Hyperlink)
+                { colorElement = colorScheme.Hyperlink; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.FollowedHyperlink)
+                { colorElement = colorScheme.FollowedHyperlinkColor; }
+
+                if (colorElement != null)
+                {
+                    // Try to get RGB from the color element
+                    var srgb = colorElement.RgbColorModelHex?.Val ??
+                               colorElement.Descendants<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>().FirstOrDefault()?.Val;
+                    if (srgb != null)
+                    { return $"#{srgb}"; }
+
+                    // Try system color as fallback
+                    var sysColor = colorElement.SystemColor?.LastColor?.Value;
+                    if (sysColor != null)
+                    { return $"#{sysColor}"; }
+                }
+            }
+
+            return null;
+        }
+
         public IXLTable Table(Int32 index)
         {
             return Tables.Table(index);

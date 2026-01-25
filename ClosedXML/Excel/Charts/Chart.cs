@@ -27,6 +27,7 @@ public class ChartSeries
     public List<string>? Labels { get; internal set; }
     public string? LineColor { get; internal set; }
     public string? FillColor { get; internal set; }
+    public string? PrimaryColor => FillColor ?? LineColor;
 }
 
 /// <summary>

@@ -150,6 +150,9 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                 }
             }
 
+            if (rowNumber.IsError)
+                return rowNumber.ToAnyValue();
+
             ScalarValue columnNumber = 1;
             if (p.Length > 2)
             {
@@ -169,6 +172,9 @@ namespace ClosedXML.Excel.CalcEngine.Functions
                     }
                 }
             }
+
+            if (columnNumber.IsError)
+                return columnNumber.ToAnyValue();
 
             if (rangeArray.Width > 1 && rangeArray.Height > 1)
             {

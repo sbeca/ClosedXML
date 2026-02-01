@@ -827,7 +827,16 @@ namespace ClosedXML.Excel
             if (solidFill.RgbColorModelHex?.Val != null)
             { return $"#{solidFill.RgbColorModelHex.Val}"; }
 
-            // 2. Theme/Scheme color
+            // 2. Preset color (e.g., "black", "white", "red")
+            var presetColor = solidFill.PresetColor;
+            if (presetColor?.Val != null)
+            {
+                var presetHex = PresetColorToHex(presetColor.Val.Value);
+                if (presetHex != null)
+                { return presetHex; }
+            }
+
+            // 3. Theme/Scheme color
             var schemeColor = solidFill.SchemeColor;
             if (schemeColor?.Val != null && workbookPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme != null)
             {
@@ -875,6 +884,37 @@ namespace ClosedXML.Excel
                 }
             }
 
+            return null;
+        }
+
+        private static string? PresetColorToHex(DocumentFormat.OpenXml.Drawing.PresetColorValues preset)
+        {
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Black) return "#000000";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.White) return "#FFFFFF";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Red) return "#FF0000";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Green) return "#00FF00";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Blue) return "#0000FF";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Yellow) return "#FFFF00";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Cyan) return "#00FFFF";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Magenta) return "#FF00FF";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Gray) return "#808080";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.LightGray) return "#D3D3D3";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.DarkGray) return "#A9A9A9";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.DarkRed) return "#8B0000";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.DarkGreen) return "#006400";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.DarkBlue) return "#00008B";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Orange) return "#FFA500";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Pink) return "#FFC0CB";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Purple) return "#800080";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Brown) return "#A52A2A";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Navy) return "#000080";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Teal) return "#008080";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Olive) return "#808000";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Maroon) return "#800000";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Aqua) return "#00FFFF";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Lime) return "#00FF00";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Silver) return "#C0C0C0";
+            if (preset == DocumentFormat.OpenXml.Drawing.PresetColorValues.Fuchsia) return "#FF00FF";
             return null;
         }
 

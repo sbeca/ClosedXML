@@ -868,6 +868,14 @@ namespace ClosedXML.Excel
                 { colorElement = colorScheme.Hyperlink; }
                 else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.FollowedHyperlink)
                 { colorElement = colorScheme.FollowedHyperlinkColor; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Text1)
+                { colorElement = colorScheme.Dark1Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Text2)
+                { colorElement = colorScheme.Dark2Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Background1)
+                { colorElement = colorScheme.Light1Color; }
+                else if (schemeVal == DocumentFormat.OpenXml.Drawing.SchemeColorValues.Background2)
+                { colorElement = colorScheme.Light2Color; }
 
                 if (colorElement != null)
                 {

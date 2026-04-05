@@ -647,16 +647,12 @@ namespace ClosedXML.Excel
                     var title = chartSpace.Descendants<Title>().FirstOrDefault();
                     string? titleText = title?.ChartText?.RichText?.InnerText;
 
-                    // If no static text found, check for a Cell Reference
                     if (string.IsNullOrWhiteSpace(titleText))
                     {
                         var stringRef = title?.ChartText?.StringReference;
 
-                        // First try reading from the internal cache
-                        titleText = stringRef?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText;
-
-                        // If cache is empty, try resolving the Formula
-                        if (string.IsNullOrWhiteSpace(titleText) && stringRef?.Formula != null)
+                        // Prefer formula-resolved value over cache so edits to referenced cells are reflected
+                        if (stringRef?.Formula?.InnerText != null)
                         {
                             try
                             {
@@ -664,6 +660,12 @@ namespace ClosedXML.Excel
                                 titleText = titleCell?.GetFormattedString();
                             }
                             catch { /* Ignore invalid ranges */ }
+                        }
+
+                        // Fall back to cache if formula resolution failed or returned empty
+                        if (string.IsNullOrWhiteSpace(titleText))
+                        {
+                            titleText = stringRef?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText;
                         }
                     }
 
@@ -722,7 +724,21 @@ namespace ClosedXML.Excel
                         }
 
                         var seriesText = series.Descendants<SeriesText>().FirstOrDefault();
-                        newSeries.Name = seriesText?.StringReference?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText ?? "Series";
+                        string? seriesName = null;
+                        var seriesStringRef = seriesText?.StringReference;
+                        if (seriesStringRef?.Formula?.InnerText != null)
+                        {
+                            try
+                            {
+                                seriesName = Workbook.Range(seriesStringRef.Formula.InnerText)?.Cells().FirstOrDefault()?.GetFormattedString();
+                            }
+                            catch { /* Ignore invalid ranges */ }
+                        }
+                        if (string.IsNullOrWhiteSpace(seriesName))
+                        {
+                            seriesName = seriesStringRef?.StringCache?.Descendants<StringPoint>().FirstOrDefault()?.NumericValue?.InnerText;
+                        }
+                        newSeries.Name = seriesName ?? "Series";
 
                         // 6. Handle X-Axis/Categories (Scatter vs Others)
                         var catAxis = series.Descendants<CategoryAxisData>().FirstOrDefault();

@@ -130,7 +130,7 @@ namespace ClosedXML.Excel
 
         internal SharedStringTable SharedStringTable { get; } = new();
 
-        internal DocumentFormat.OpenXml.Packaging.SpreadsheetDocument? OpenSpreadsheetDocumentForReading()
+        internal DocumentFormat.OpenXml.Packaging.SpreadsheetDocument OpenSpreadsheetDocumentForReading()
         {
             if (_loadSource == XLLoadSource.File)
                 return DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(_originalFile, false);

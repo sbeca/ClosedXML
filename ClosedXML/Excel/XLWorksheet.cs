@@ -600,12 +600,12 @@ namespace ClosedXML.Excel
         /// </summary>
         public IEnumerable<Chart> ReadCharts()
         {
-            var spreadsheetDocument = Workbook.SpreadsheetDocument;
-            if (spreadsheetDocument?.WorkbookPart == null)
-            { yield break; }
-
             if (RelId is null)
-            { yield break; }
+                yield break;
+
+            using var spreadsheetDocument = Workbook.OpenSpreadsheetDocumentForReading();
+            if (spreadsheetDocument?.WorkbookPart == null)
+                yield break;
 
             var worksheetPart = spreadsheetDocument.WorkbookPart.GetPartById(RelId) as WorksheetPart;
             if (worksheetPart?.DrawingsPart?.WorksheetDrawing == null)

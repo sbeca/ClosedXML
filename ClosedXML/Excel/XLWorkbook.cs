@@ -130,7 +130,17 @@ namespace ClosedXML.Excel
 
         internal SharedStringTable SharedStringTable { get; } = new();
 
-        internal DocumentFormat.OpenXml.Packaging.SpreadsheetDocument SpreadsheetDocument { get; private set; }
+        internal DocumentFormat.OpenXml.Packaging.SpreadsheetDocument? OpenSpreadsheetDocumentForReading()
+        {
+            if (_loadSource == XLLoadSource.File)
+                return DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(_originalFile, false);
+            if (_loadSource == XLLoadSource.Stream && _originalStream != null)
+            {
+                _originalStream.Position = 0;
+                return DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(_originalStream, false);
+            }
+            return null;
+        }
 
         #region Nested Type : XLLoadSource
 
@@ -871,7 +881,6 @@ namespace ClosedXML.Excel
         // Used by Janitor.Fody
         private void DisposeManaged()
         {
-            SpreadsheetDocument?.Dispose();
             Worksheets.ForEach(w => (w as XLWorksheet).Cleanup());
         }
 

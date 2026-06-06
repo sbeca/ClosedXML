@@ -215,7 +215,7 @@ namespace ClosedXML.Excel.IO
 
             svcm.SetElement(XLSheetViewContents.Pane, pane);
 
-            pane.State = PaneStateValues.FrozenSplit;
+            pane.State = PaneStateValues.Frozen;
             int hSplit = xlWorksheet.SheetView.SplitColumn;
             int ySplit = xlWorksheet.SheetView.SplitRow;
 
